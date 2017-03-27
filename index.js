@@ -1,5 +1,6 @@
 const Slash = require('slash')
 const ID_ENRAGE = 8888888
+const debug = false
 let cid = {}
 let entities = {}
 let combat = false
@@ -42,6 +43,9 @@ function BossManager(dispatch){
 
 function AbnormalManager(dispatch){
     let npcs = {}
+    function getNpc(id){
+        return npcs[id.toString()] = npcs[id.toString()] || {}
+    }
     function addAbnormal(event){
         let entity = getEntity(event.target)
         let abnormal = entity.abnormals[event.id] = entity.abnormals[event.id] || {}
@@ -68,12 +72,10 @@ function AbnormalManager(dispatch){
     dispatch.hook('S_ABNORMALITY_BEGIN', 1, addAbnormal)
     dispatch.hook('S_ABNORMALITY_REFRESH', 1, refreshAbnormal)
     dispatch.hook('S_ABNORMALITY_END', 1, removeAbnormal)
-    function getNpc(id){
-        return npcs[id.toString()] = npcs[id.toString()] || {}
-    }
     dispatch.hook('S_NPC_STATUS', 1, (event) => {
         if(lngCmp(event.target, 0)) return
         let npc = getNpc(event.creature)
+        let entity = getEntity(event.creature)
         if(event.enraged === 1) {
             if(!npc.enraged){
                 addAbnormal({
@@ -92,6 +94,9 @@ function AbnormalManager(dispatch){
                     target: event.creature,
                     id: ID_ENRAGE
                 })
+                if(entity.hp){
+                    entity.abnormals[ID_ENRAGE].nextEnrage = entity.hp - 10
+                }
             }
             npc.enraged = false
         }
@@ -218,7 +223,7 @@ module.exports = function BattleNotify(dispatch){
             if(info){
                 _msg = _msg.replace('{duration}', Math.round((info.expires - Date.now())/1000))
                 _msg = _msg.replace('{name}', info.entity.name)
-                if(info.entity.hp) _msg = _msg.replace('{hpminus10}',  info.entity.hp - 10)
+                if(info.nextEnrage) _msg = _msg.replace('{nextEnrage}',  info.nextEnrage)
             }
             notify(_msg)
         }
@@ -235,7 +240,7 @@ module.exports = function BattleNotify(dispatch){
     createEvent(ID_ENRAGE, 'MyBoss', 'added', 'Enrage {duration}s')
     createEvent(ID_ENRAGE, 'MyBoss', 'expiring', 'Enrage {duration}s', 12)
     createEvent(ID_ENRAGE, 'MyBoss', 'expiring', 'Enrage {duration}s', 6)
-    createEvent(ID_ENRAGE, 'MyBoss', 'removed', 'Enrage Expired - Next {hpminus10}%')
+    createEvent(ID_ENRAGE, 'MyBoss', 'removed', 'Enrage Expired - Next {nextEnrage}%')
 
     createEvent([701700, 701701], 'MyBoss', 'added', 'Contagion {duration}s')
     createEvent([701700, 701701], 'MyBoss', 'expiring', 'Contagion {duration}s', 6)
@@ -251,12 +256,12 @@ module.exports = function BattleNotify(dispatch){
         let entity = getEntity(cid)
         entity.name = event.name
     })
-/*
-    // for debug
+
     dispatch.hook('S_PRIVATE_CHAT', 1, (event) => {
+        if(!debug) return
         cid = event.authorID
     })
-*/
+
     dispatch.hook('S_CLEAR_ALL_HOLDED_ABNORMALITY', 'raw', (data) => {
         for(id in entities){
             entities[id].abnormals = {}
