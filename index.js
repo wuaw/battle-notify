@@ -16,15 +16,20 @@ function BossManager(dispatch){
         if(!myBoss) myBoss = event.id
         let entity = getEntity(event.id)
         if(!entity.name) entity.name = `{@Creature:${event.type}#${event.npc}}`
-        entity.hp = Math.floor((event.curHp / event.maxHp) * 100);
     })
     dispatch.hook('S_EACH_SKILL_RESULT', 1, (event) => {
         if(!lngCmp(event.source, cid) && !lngCmp(event.id0, cid)) return
         if(!isBoss(event.target)) return
         myBoss = event.target
     })
+    dispatch.hook('S_CREATURE_CHANGE_HP', (event) => {
+        let entity = getEntity(event.target)
+        entity.hp = Math.floor((event.curHp / event.maxHp) * 100)
+        if(event.curHp === 0) clearEntity(event.target)
+    })
     dispatch.hook('S_DESPAWN_NPC', 1, (event) => {
         if(event.target === myBoss) myBoss = null
+        clearEntity(event.target)
     })
     this.clear = function(){
         myBoss = null
@@ -105,6 +110,12 @@ function getEntity(id){
     if(!id) return false
     id = id.toString()
     return entities[id] = entities[id] || {abnormals: {}}
+}
+function clearEntity(id){
+    if(!id) return false
+    id = id.toString()
+    let entity = getEntity(id)
+    entity.abnormals = {}
 }
 
 module.exports = function BattleNotify(dispatch){
