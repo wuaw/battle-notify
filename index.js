@@ -10,19 +10,20 @@ function BossManager(dispatch){
     function isBoss(id){
         return (bosses.includes(id.toString()))
     }
-    dispatch.hook('sBossGageInfo', (event) => {
+    dispatch.hook('S_BOSS_GAGE_INFO', 1, (event) => {
         if(!bosses.includes(event.id.toString()))
             bosses.push(event.id.toString())
         if(!myBoss) myBoss = event.id
         let entity = getEntity(event.id)
         if(!entity.name) entity.name = `{@Creature:${event.type}#${event.npc}}`
+        entity.hp = Math.floor((event.curHp / event.maxHp) * 100);
     })
-    dispatch.hook('sEachSkillResult', (event) => {
+    dispatch.hook('S_EACH_SKILL_RESULT', 1, (event) => {
         if(!lngCmp(event.source, cid) && !lngCmp(event.id0, cid)) return
         if(!isBoss(event.target)) return
         myBoss = event.target
     })
-    dispatch.hook('sDespawnNpc', (event) => {
+    dispatch.hook('S_DESPAWN_NPC', 1, (event) => {
         if(event.target === myBoss) myBoss = null
     })
     this.clear = function(){
@@ -56,13 +57,13 @@ function AbnormalManager(dispatch){
         delete abnormal.refreshed
         delete abnormal.expires
     }
-    dispatch.hook('sAbnormalityBegin', addAbnormal)
-    dispatch.hook('sAbnormalityRefresh', refreshAbnormal)
-    dispatch.hook('sAbnormalityEnd', removeAbnormal)
+    dispatch.hook('S_ABNORMALITY_BEGIN', 1, addAbnormal)
+    dispatch.hook('S_ABNORMALITY_REFRESH', 1, refreshAbnormal)
+    dispatch.hook('S_ABNORMALITY_END', 1, removeAbnormal)
     function getNpc(id){
         return npcs[id.toString()] = npcs[id.toString()] || {}
     }
-    dispatch.hook('sNpcStatus', (event) => {
+    dispatch.hook('S_NPC_STATUS', 1, (event) => {
         if(lngCmp(event.target, 0)) return
         let npc = getNpc(event.creature)
         if(event.enraged === 1) {
@@ -90,7 +91,7 @@ function AbnormalManager(dispatch){
 }
 
 function PlayerManager(dispatch){
-    dispatch.hook('sUserStatus', (event) => {
+    dispatch.hook('S_USER_STATUS', 1, (event) => {
         if(!lngCmp(cid, event.target)) return
         combat = (event.status === 1)
     })
@@ -186,7 +187,7 @@ module.exports = function BattleNotify(dispatch){
                 } else results.push(false)
             })
 
-            if(info) info.name = entity.name
+            if(info) info.entity = entity
 
             if(type.includes('missing')){
                 if(results.every(result => { return result }))
@@ -201,7 +202,8 @@ module.exports = function BattleNotify(dispatch){
             let _msg = message
             if(info){
                 _msg = _msg.replace('{duration}', Math.round((info.expires - Date.now())/1000))
-                _msg = _msg.replace('{name}', info.name)
+                _msg = _msg.replace('{name}', info.entity.name)
+                if(info.entity.hp) _msg = _msg.replace('{hpminus10}',  info.entity.hp - 10)
             }
             notify(_msg)
         }
@@ -218,7 +220,7 @@ module.exports = function BattleNotify(dispatch){
     createEvent(ID_ENRAGE, 'MyBoss', 'added', 'Enrage {duration}s')
     createEvent(ID_ENRAGE, 'MyBoss', 'expiring', 'Enrage {duration}s', 12)
     createEvent(ID_ENRAGE, 'MyBoss', 'expiring', 'Enrage {duration}s', 6)
-    createEvent(ID_ENRAGE, 'MyBoss', 'removed', 'Enrage Expired')
+    createEvent(ID_ENRAGE, 'MyBoss', 'removed', 'Enrage Expired - Next {hpminus10}%')
 
     createEvent([701700, 701701], 'MyBoss', 'added', 'Contagion {duration}s')
     createEvent([701700, 701701], 'MyBoss', 'expiring', 'Contagion {duration}s', 6)
@@ -229,29 +231,29 @@ module.exports = function BattleNotify(dispatch){
     createEvent(60010, 'MyBoss', 'removed', 'Hurricane Expired')
 
 
-    dispatch.hook('sLogin', (event) => {
+    dispatch.hook('S_LOGIN', 1, (event) => {
         ({cid} = event)
         let entity = getEntity(cid)
         entity.name = event.name
     })
 /*
     // for debug
-    dispatch.hook('sPrivateChat', (event) => {
+    dispatch.hook('S_PRIVATE_CHAT', 1, (event) => {
         cid = event.authorID
     })
 */
-    dispatch.hook('sClearAllHoldedAbnormality', 'raw', (data) => {
+    dispatch.hook('S_CLEAR_ALL_HOLDED_ABNORMALITY', 'raw', (data) => {
         for(id in entities){
             entities[id].abnormals = {}
         }
     })
 
-    dispatch.hook('sLoadTopo', (event) => {
+    dispatch.hook('S_LOAD_TOPO', 1, (event) => {
         bossMan.clear()
     })
 
     function notify(message){
-        dispatch.toClient('sDungeonEventMessage', {
+        dispatch.toClient('S_DUNGEON_EVENT_MESSAGE', 1, {
             unk1: 2,
             unk2: 0,
             unk3: 0,
