@@ -22,10 +22,13 @@ function BossManager(dispatch){
         if(!isBoss(event.target)) return
         myBoss = event.target
     })
-    dispatch.hook('S_CREATURE_CHANGE_HP', (event) => {
+    dispatch.hook('S_CREATURE_CHANGE_HP', 1, (event) => {
         let entity = getEntity(event.target)
         entity.hp = Math.floor((event.curHp / event.maxHp) * 100)
-        if(event.curHp === 0) clearEntity(event.target)
+    })
+    dispatch.hook('S_CREATURE_LIFE', 1, (event) => {
+        let entity = getEntity(event.target)
+        entity.dead = !event.alive
     })
     dispatch.hook('S_DESPAWN_NPC', 1, (event) => {
         if(event.target === myBoss) myBoss = null
@@ -187,6 +190,7 @@ module.exports = function BattleNotify(dispatch){
         function checkEntity(id){
             const entity = getEntity(id)
             if(!entity) return false
+            if(entity.dead) return
             let results = []
             let info
             abnormals.forEach(abnormal => {
