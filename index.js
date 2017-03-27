@@ -278,7 +278,16 @@ module.exports = function BattleNotify(dispatch){
             unk2: 0,
             unk3: 0,
             message
-        })
+        });
+        dispatch.toClient('S_CHAT',1, {
+              channel: 206,
+              authorID: { high: 0, low: 0 },
+              unk1: 0,
+              gm: 0,
+              unk2: 0,
+              authorName: '',
+              message: message,
+        });
     }
 
     function checkEvents(){
