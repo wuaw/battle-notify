@@ -1,4 +1,3 @@
-const Slash = require('slash')
 const ID_ENRAGE = 8888888
 const debug = false
 let cid = {}
@@ -144,7 +143,6 @@ function clearEntity(id){
 }
 
 module.exports = function BattleNotify(dispatch){
-    const slash = new Slash(dispatch)
     const bossMan = new BossManager(dispatch)
     const abMan = new AbnormalManager(dispatch)
     const playerMan = new PlayerManager(dispatch)
