@@ -1,6 +1,5 @@
 wip
 
 todo:
-- config file
-- per-class stuff
 - party & other boss targets
+- optional notification types (popup only, chat only, popup+chat, etc)

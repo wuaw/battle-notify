@@ -5,6 +5,23 @@ let cid = {}
 let entities = {}
 let combat = false
 let myBoss
+let job
+
+const jobs = [
+    'warrior',
+    'lancer',
+    'slayer',
+    'berserker',
+    'sorcerer',
+    'archer',
+    'priest',
+    'mystic',
+    'reaper',
+    'gunner',
+    'brawler',
+    'ninja',
+    'valkyrie'
+]
 
 function BossManager(dispatch){
     let bosses = []
@@ -132,6 +149,7 @@ module.exports = function BattleNotify(dispatch){
     const abMan = new AbnormalManager(dispatch)
     const playerMan = new PlayerManager(dispatch)
     let events = []
+
     const targets = {
         self: function(cb){
             return cb(cid)
@@ -140,13 +158,14 @@ module.exports = function BattleNotify(dispatch){
             return cb(myBoss)
         }
     }
-
     const conditions = {
-        expiring: function(seconds){
+        expiring: function(args){
+            let timesToMatch = args.timeRemaining || 6
+            if(typeof timesToMatch !== typeof []) timesToMatch = [timesToMatch]
             return function(info){
                 if(!info || !info.expires) return false
                 let remaining = Math.round((info.expires - Date.now())/1000)
-                if(remaining === seconds) return (info.refreshed || info.added)
+                if(timesToMatch.includes(remaining)) return (info.refreshed || info.added) + (remaining * 1000)
             }
         },
         added: function() {
@@ -161,18 +180,18 @@ module.exports = function BattleNotify(dispatch){
         removed: function(){
             return function(info) { return (info ? info.removed : false) }
         },
-        missing: function(rewarnTimeout){
-            if(!rewarnTimeout) rewarnTimeout = 5
+        missing: function(args){
+            let rewarnTimeout = args.rewarnTimeout || 5
             rewarnTimeout *= 1000
             return function(info, lastMatch) {
                 if(!info || (info && info.ended)){
-                    if((lastMatch + rewarnTimeout) > Date.now()) return
-                    return Date.now()
+                    if((lastMatch + rewarnTimeout) > Date.now()) return false
+                    return (Date.now())
                 }
             }
         },
-        missingduringcombat: function(rewarnTimeout){
-            if(!rewarnTimeout) rewarnTimeout = 5
+        missingduringcombat: function(args){
+            let rewarnTimeout = args.rewarnTimeout || 5
             rewarnTimeout *= 1000
             return function(info, lastMatch) {
                 if(!info || (info && info.ended)){
@@ -184,13 +203,12 @@ module.exports = function BattleNotify(dispatch){
         }
     }
 
-
-    function AbnormalEvent(abnormals, _target, type, message, arg){
+    function AbnormalEvent(abnormals, _target, type, message, args){
         if(typeof abnormals !== typeof []) abnormals = [abnormals]
         type = type.toLowerCase()
         _target = _target.toLowerCase()
         let doTargets = targets[_target]
-        let condition = conditions[type](arg)
+        let condition = conditions[type](args)
         let lastMatch = 0
         function checkEntity(id){
             const entity = getEntity(id)
@@ -198,32 +216,39 @@ module.exports = function BattleNotify(dispatch){
             if(entity.dead) return
             let results = []
             let info
+            let _lastMatch = lastMatch
             abnormals.forEach(abnormal => {
                 const match = condition(entity.abnormals[abnormal], lastMatch)
                 if(match && match !== lastMatch){
-                    lastMatch = match
+                    _lastMatch = match
                     results.push(true)
                     info = entity.abnormals[abnormal]
                 } else results.push(false)
             })
 
+
             if(info) info.entity = entity
 
             if(type.includes('missing')){
-                if(results.every(result => { return result }))
+                if(results.every(result => { return result })){
+                    lastMatch = _lastMatch
                     // for "missing" types, we need all abnormalities to be missing
                     doNotify(info)
-            } else if (results.includes(true))
+                }
+
+            } else if (results.includes(true)){
+                lastMatch = _lastMatch
                 //if one abnormality matched
                 doNotify(info)
+            }
         }
 
         function doNotify(info){
             let _msg = message
             if(info){
-                _msg = _msg.replace('{duration}', Math.round((info.expires - Date.now())/1000))
+                _msg = _msg.replace('{duration}', Math.round((info.expires - Date.now())/1000) + 's')
                 _msg = _msg.replace('{name}', info.entity.name)
-                if(info.nextEnrage) _msg = _msg.replace('{nextEnrage}',  info.nextEnrage)
+                if(info.nextEnrage) _msg = _msg.replace('{nextEnrage}',  info.nextEnrage + '%')
             }
             notify(_msg)
         }
@@ -233,28 +258,12 @@ module.exports = function BattleNotify(dispatch){
         }
     }
 
-    function createEvent(abnormals, _target, type, message, arg){
-        events.push(new AbnormalEvent(abnormals, _target, type, message, arg))
-    }
-
-    createEvent(ID_ENRAGE, 'MyBoss', 'added', 'Enrage {duration}s')
-    createEvent(ID_ENRAGE, 'MyBoss', 'expiring', 'Enrage {duration}s', 12)
-    createEvent(ID_ENRAGE, 'MyBoss', 'expiring', 'Enrage {duration}s', 6)
-    createEvent(ID_ENRAGE, 'MyBoss', 'removed', 'Enrage Expired - Next {nextEnrage}%')
-
-    createEvent([701700, 701701], 'MyBoss', 'added', 'Contagion {duration}s')
-    createEvent([701700, 701701], 'MyBoss', 'expiring', 'Contagion {duration}s', 6)
-    createEvent([701700, 701701], 'MyBoss', 'removed', 'Contagion Expired')
-
-    createEvent(60010, 'MyBoss', 'added', 'Hurricane {duration}s')
-    createEvent(60010, 'MyBoss', 'expiring', 'Hurricane {duration}s', 6)
-    createEvent(60010, 'MyBoss', 'removed', 'Hurricane Expired')
-
-
     dispatch.hook('S_LOGIN', 1, (event) => {
         ({cid} = event)
+        job = (event.model - 10101) % 100
         let entity = getEntity(cid)
         entity.name = event.name
+        refreshConfig()
     })
 
     dispatch.hook('S_PRIVATE_CHAT', 1, (event) => {
@@ -272,13 +281,17 @@ module.exports = function BattleNotify(dispatch){
         bossMan.clear()
     })
 
+    function createEvent(abnormals, _target, type, message, arg){
+        events.push(new AbnormalEvent(abnormals, _target, type, message, arg))
+    }
+
     function notify(message){
         dispatch.toClient('S_DUNGEON_EVENT_MESSAGE', 1, {
             unk1: 2,
             unk2: 0,
             unk3: 0,
             message
-        });
+        })
         dispatch.toClient('S_CHAT',1, {
               channel: 206,
               authorID: { high: 0, low: 0 },
@@ -287,9 +300,36 @@ module.exports = function BattleNotify(dispatch){
               unk2: 0,
               authorName: '',
               message: message,
-        });
+        })
     }
 
+    function refreshConfig(){
+        events = []
+        delete require.cache[require.resolve('./config/common')]
+        delete require.cache[require.resolve('./config/' + jobs[job])]
+        loadEvents(require('./config/common'))
+        loadEvents(require('./config/' + jobs[job]))
+    }
+    function loadEvents(obj){
+        obj.forEach(event => {
+            createEvent(
+                event.abnormalities,
+                event.target,
+                event.type,
+                event.message,
+                {
+                    timeRemaining: event.time_remaining,
+                    rewarnTimeout: event.rewarn_timeout
+                }
+            )
+        })
+    }
+
+
+    if(debug) {
+        job = 0
+        refreshConfig()
+    }
     function checkEvents(){
         events.forEach(event => {
             event.check()
