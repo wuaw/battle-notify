@@ -185,8 +185,8 @@ module.exports = function BattleNotify(dispatch){
             let rewarnTimeout = args.rewarnTimeout || 5
             rewarnTimeout *= 1000
             return function(info, lastMatch) {
-                if(!info || (info && info.ended)){
-                    if((lastMatch + rewarnTimeout) > Date.now()) return false
+                if(!info || (info && info.removed)){
+                    if((lastMatch + rewarnTimeout) > Date.now()) return
                     return (Date.now())
                 }
             }
@@ -195,7 +195,7 @@ module.exports = function BattleNotify(dispatch){
             let rewarnTimeout = args.rewarnTimeout || 5
             rewarnTimeout *= 1000
             return function(info, lastMatch) {
-                if(!info || (info && info.ended)){
+                if(!info || (info && info.removed)){
                     if((lastMatch + rewarnTimeout) > Date.now()) return
                     if(!combat) return
                     return Date.now()
