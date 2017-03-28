@@ -172,7 +172,7 @@ module.exports = function BattleNotify(dispatch){
             return function(info) { return (info ? info.added : false) }
         },
         addedorrefreshed: function(){
-            return function(info) { return (info ? (event.refreshed || info.added) : false) }
+            return function(info) { return (info ? (info.refreshed || info.added) : false) }
         },
         refreshed: function(){
             return function(info) { return (info ? info.refreshed : false) }
