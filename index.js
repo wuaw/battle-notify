@@ -149,6 +149,7 @@ module.exports = function BattleNotify(dispatch){
     const abMan = new AbnormalManager(dispatch)
     const playerMan = new PlayerManager(dispatch)
     let events = []
+    let enabled = true
 
     const targets = {
         self: function(cb){
@@ -261,9 +262,13 @@ module.exports = function BattleNotify(dispatch){
     dispatch.hook('S_LOGIN', 1, (event) => {
         ({cid} = event)
         job = (event.model - 10101) % 100
+        enabled = true
         let entity = getEntity(cid)
         entity.name = event.name
         refreshConfig()
+    })
+    dispatch.hook('S_RETURN_TO_LOBBY', 'raw', (data) => {
+        enabled = false
     })
 
     dispatch.hook('S_PRIVATE_CHAT', 1, (event) => {
@@ -331,6 +336,7 @@ module.exports = function BattleNotify(dispatch){
         refreshConfig()
     }
     function checkEvents(){
+        if(!enabled) return
         events.forEach(event => {
             event.check()
         })
