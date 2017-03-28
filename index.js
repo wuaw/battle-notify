@@ -48,8 +48,8 @@ function BossManager(dispatch){
         entity.dead = !event.alive
     })
     dispatch.hook('S_DESPAWN_NPC', 1, (event) => {
-        if(event.target === myBoss) myBoss = null
-        clearEntity(event.target)
+        let entity = getEntity(event.target)
+        if(event.type === 5 || event.type === 3) entity.dead = true
     })
     this.clear = function(){
         myBoss = null
@@ -120,6 +120,14 @@ function AbnormalManager(dispatch){
 }
 
 function PlayerManager(dispatch){
+    dispatch.hook('S_SPAWN_ME', 1, (event) => {
+        let entity = getEntity(event.target)
+        entity.dead = (event.alive === 0)
+    })
+    dispatch.hook('S_SPAWN_USER', 2, (event) => {
+        let entity = getEntity(event.cid)
+        entity.dead = (event.unk7 === 0)
+    })
     dispatch.hook('S_USER_STATUS', 1, (event) => {
         if(!lngCmp(cid, event.target)) return
         combat = (event.status === 1)
@@ -265,6 +273,7 @@ module.exports = function BattleNotify(dispatch){
         entity.name = event.name
         refreshConfig()
     })
+
     dispatch.hook('S_RETURN_TO_LOBBY', 'raw', (data) => {
         enabled = false
     })
@@ -273,14 +282,12 @@ module.exports = function BattleNotify(dispatch){
         if(!debug) return
         cid = event.authorID
     })
+    if(debug) dispatch.toServer('C_CHAT', 1, {"channel":11,"message":"<FONT></FONT>"})
 
     dispatch.hook('S_CLEAR_ALL_HOLDED_ABNORMALITY', 'raw', (data) => {
         for(id in entities){
             entities[id].abnormals = {}
         }
-    })
-
-    dispatch.hook('S_LOAD_TOPO', 1, (event) => {
         bossMan.clear()
     })
 
@@ -339,7 +346,7 @@ module.exports = function BattleNotify(dispatch){
             event.check()
         })
     }
-    const checkTimer = setInterval(checkEvents, 200)
+    const checkTimer = setInterval(checkEvents, 500)
     this.destructor = function(){
         clearInterval(checkTimer)
     }
