@@ -141,7 +141,7 @@ module.exports = function BattleNotify(dispatch){
             message
         })
         dispatch.toClient('S_CHAT',1, {
-              channel: 206,
+              channel: 203,
               authorID: { high: 0, low: 0 },
               unk1: 0,
               gm: 0,
