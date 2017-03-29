@@ -88,7 +88,7 @@ module.exports = [
 		message: 'Adrenaline Rush {duration}',
 		time_remaining: 6
 	}
-	// Hurricane Removed
+	// Adrenaline Rush Removed
 ,	{
 		type: 'removed',
 		target: 'Self',
