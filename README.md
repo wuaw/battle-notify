@@ -37,7 +37,7 @@ The `type` field can be any of the following (case-insensitive):
 - `Expiring` An abnormality is expiring on the target.
   - This type has extra arguments: `time_remaining`
   - Specifying a `time_remaining` of `6` would mean that when 6 seconds are left on the buff or debuff, the notification for this event is shown.
-  - Specifying a `time_remaining` of `[6, 12]`, in an array, works in a similar manor but for both 6 and 12 seconds. There is no limit on how many integers you can specify.
+  - Specifying a `time_remaining` of `[6, 12]`, in an array, works in a similar manner but for both 6 and 12 seconds. There is no limit on how many integers you can specify.
 - `Missing` All of the specified abnormalities are missing from the target.
 - `MissingDuringCombat` Similar to `Missing`, but only triggers when you are in combat.
   - Both `Missing` types have extra arguments: `rewarn_timeout`
