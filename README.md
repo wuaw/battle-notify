@@ -81,3 +81,4 @@ Extra arguments should be supplied for some event types. You can find details ab
 - Boss mechanic events (e.g. P3 Vergos debuffs)
 - Cooldown events
 - In-game commands (on, off, ...)
+- Abnormality stack tracking
