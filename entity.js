@@ -73,6 +73,14 @@ module.exports = function EntityManager(dispatch, debug){
         let entity = getEntity(event.target)
         entity.combat = (event.status === 1)
     })
+    dispatch.hook('S_PARTY_MEMBER_LIST', 2, processPartyList)
+    dispatch.hook('S_PARTY_MEMBER_INFO', 2, processPartyList)
+    function processPartyList(event) {
+        event.members.forEach(member => {
+            let entity = getEntity(member.cID)
+            entity.name = member.name
+        })
+    }
     dispatch.hook('S_LOGIN', 1, (event) => {
         let entity = getEntity(event.cid)
         let job = (event.model - 10101) % 100

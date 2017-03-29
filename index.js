@@ -2,22 +2,34 @@ const debug = false
 if(debug){
     delete require.cache[require.resolve('./abnormal')]
     delete require.cache[require.resolve('./entity')]
+    delete require.cache[require.resolve('./party')]
 }
 
 const AbnormalManager = require('./abnormal')
 const EntityManager = require('./entity')
+const PartyManager = require('./party')
 
 module.exports = function BattleNotify(dispatch){
-    const entities = new EntityManager(dispatch, debug)
     const abMan = new AbnormalManager(dispatch, debug)
+    const entities = new EntityManager(dispatch, debug)
+    const party = new PartyManager(dispatch, debug)
     let events = []
     let enabled = false
     const targets = {
         self: function(cb){
-            return cb(entities.self().cid)
+            cb(entities.self().cid)
         },
         myboss: function(cb) {
-            return cb(entities.myBoss())
+            cb(entities.myBoss())
+        },
+        partyincludingself: function(cb) {
+            party.members().forEach(cb)
+        },
+        party: function(cb){
+            party.members().forEach(cid => {
+                if(cid === entities.self().cid) return
+                cb(cid)
+            })
         }
     }
     const conditions = {
@@ -103,6 +115,8 @@ module.exports = function BattleNotify(dispatch){
             let _msg = message
             if(info){
                 _msg = _msg.replace('{duration}', Math.round((info.expires - Date.now())/1000) + 's')
+            }
+            if(entity && entity !== {}){
                 _msg = _msg.replace('{name}', entity.name)
                 _msg = _msg.replace('{nextEnrage}',  entity.nextEnrage + '%')
             }
