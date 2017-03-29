@@ -10,6 +10,8 @@ A [tera-proxy](https://github.com/meishuu/tera-proxy) module to show text notifc
 
 Clone to `tera-proxy/bin/node_modules/battle-notify`
 
+Please make sure that your copy of [tera-proxy](https://github.com/meishuu/tera-proxy) and it's dependencies (mainly [tera-data](https://github.com/meishuu/tera-data)) is up to date.
+
 ## Configuration
 
 The `config` folder contains all of the files necessary to customize the events that are shown.
@@ -55,7 +57,7 @@ The `abnormalities` field specifies the ID of the buff or debuff (known in the g
 
 You can find a list of buffs and debuffs in the `hotdot` file for your region in the [TeraDpsMeterData](https://github.com/neowutran/TeraDpsMeterData/tree/master/hotdot) repository. [Here](https://github.com/neowutran/TeraDpsMeterData/blob/master/hotdot/hotdot-NA.tsv) is a link to the list of abnormalities for NA region.
 
-You can specify multiple abnormalities in an array (`[11111, 22222]`) or a single abnormality on it's own (`11111`).
+You can specify multiple abnormalities in an array `[11111, 22222]` or a single abnormality on it's own `11111`.
 
 Since the game does not normally have an abnormality ID for enrage, it is hard-coded in the module as ID `8888888`. The module estimates how long the entity should stay enraged for, and when the next enrage should be, using the generally known 36-second rule. This is not accurate for all bosses, however, so be warned should you encounter some inaccuracies.
 
