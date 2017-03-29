@@ -115,6 +115,7 @@ module.exports = function BattleNotify(dispatch){
             let _msg = message
             if(info){
                 _msg = _msg.replace('{duration}', Math.round((info.expires - Date.now())/1000) + 's')
+                _msg = _msg.replace('{stacks}', info.stacks)
             }
             if(entity && entity !== {}){
                 _msg = _msg.replace('{name}', entity.name)

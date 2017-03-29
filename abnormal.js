@@ -42,12 +42,14 @@ module.exports = function AbnormalManager(dispatch, debug){
         let abnormal = getAbnormal(event.target, event.id)
         abnormal.added = Date.now()
         abnormal.expires = Date.now() + event.duration
+        abnormal.stacks = event.stacks
         delete abnormal.refreshed
         delete abnormal.removed
     }
     function refreshAbnormal(event){
         let abnormal = getAbnormal(event.target, event.id)
         if(!abnormal.added) abnormal.added = Date.now()
+        abnormal.stacks = event.stacks
         abnormal.refreshed = Date.now()
         abnormal.expires = Date.now() + event.duration
     }
@@ -57,6 +59,7 @@ module.exports = function AbnormalManager(dispatch, debug){
         delete abnormal.added
         delete abnormal.refreshed
         delete abnormal.expires
+        delete abnormal.stacks
     }
     this.get = function(entityId, abnormalId){
         let entity = getEntity(entityId)

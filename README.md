@@ -30,8 +30,8 @@ This is an example event:
 
 #### Type
 
-The `type` field can be any of the following (case-insensitive): 
-- `Added` An abnormality was added to the target. 
+The `type` field can be any of the following (case-insensitive):
+- `Added` An abnormality was added to the target.
 - `AddedOrRefreshed` An abnormality was added, or refreshed on the target.
 - `Refreshed` An abnormality was refreshed on the target.
 - `Expiring` An abnormality is expiring on the target.
@@ -66,9 +66,10 @@ Since the game does not normally have an abnormality ID for enrage, it is hard-c
 The `message` field specifies the message to be shown on the in-game notification when the event triggers. It should be a string.
 
 You can use the following text in your string and the module will replace it with the relevant information:
-- `{duration}` Display the remaining duration of the abnormality. Will not work with `Missing` or `Removed` type events.
-- `{name}` The in-game name of the `target` that was specified.
-- `{nextEnrage}` The HP percentage that the `target` is expected to enrage at next. Only works with bosses. See note above in the `abnormalities` section about inaccuracies of enrage prediction.
+- `{duration}` Display the remaining duration of the abnormality. Will not work with `Missing` or `Removed` type events. (Displays in seconds, e.g. `36s`)
+- `{stacks}` Display the number of stacks that the abnormality has on the target. (Displays an integer, e.g. `6`)
+- `{name}` The in-game name of the target that was specified.
+- `{nextEnrage}` The HP percentage that the target is expected to enrage at next. Only works with bosses. See note above in the `abnormalities` section about inaccuracies of enrage prediction. (Displays a percentage, e.g. `55%`)
 
 #### Argument fields
 
