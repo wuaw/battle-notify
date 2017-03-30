@@ -101,9 +101,9 @@ The `skills` field for a skill reset event specifies the skill IDs that you woul
 
 You can find a list of skills in the `skills` file for your region in the [TeraDpsMeterData](https://github.com/neowutran/TeraDpsMeterData/blob/master/skills/) repository. [Here](https://github.com/neowutran/TeraDpsMeterData/blob/master/skills/skills-NA.tsv) is a link to the list of skills for NA region. The leftmost column indicates the skill ID.
 
-You can specify a single skill `290100` or multiple skill IDs in an array `[290100, 370100]`.
+You can specify a single skill ID `290100` or multiple skill IDs in an array `[290100, 370100]`.
 
-Please ignore the following information if you do not understand, it is not necessary to create an event. Skills trigger an event by their respective group, rather than the raw skill ID that you supply. So, `290100` would hook group `29`. This is done so that you do not need to supply the skill ID for each level of the skill. However, in some cases a skill has a different group in certain conditions (See warrior blade draw with & without deadly gamble buff, or slayer OHS with ICB). In these cases you must provide the base skill ID and the buffed skill ID, as shown above.
+Skills trigger an event by their respective group, rather than the raw skill ID that you supply. So, `290100` would hook group `29`. This is done so that you do not need to supply the skill ID for each level of the skill. However, in some cases a skill has a different group in certain conditions (See warrior blade draw with & without deadly gamble buff, or slayer OHS with ICB). In these cases you must provide the base skill ID and the buffed skill ID, as shown above for warrior's blade draw.
 
 #### Message
 
@@ -116,5 +116,5 @@ You can use the following text in your string and the module will replace it wit
 - Custom message styling (colour, size)
 - Custom notification types (pop-up, chat)
 - Boss mechanic events (e.g. P3 Vergos debuffs)
-- Cooldown events
+- Skill & item cooldown events
 - In-game commands (on, off, ...)
