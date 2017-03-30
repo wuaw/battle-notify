@@ -1,20 +1,24 @@
 const debug = false
 if(debug){
-    delete require.cache[require.resolve('./abnormal')]
-    delete require.cache[require.resolve('./entity')]
-    delete require.cache[require.resolve('./party')]
+    delete require.cache[require.resolve('./lib/abnormal')]
+    delete require.cache[require.resolve('./lib/cooldown')]
+    delete require.cache[require.resolve('./lib/entity')]
+    delete require.cache[require.resolve('./lib/party')]
 }
 
-const AbnormalManager = require('./abnormal')
-const EntityManager = require('./entity')
-const PartyManager = require('./party')
+const AbnormalManager = require('./lib/abnormal')
+const CooldownManager = require('./lib/cooldown')
+const EntityManager = require('./lib/entity')
+const PartyManager = require('./lib/party')
 
 module.exports = function BattleNotify(dispatch){
     const abMan = new AbnormalManager(dispatch, debug)
+    const cooldown = new CooldownManager(dispatch, debug)
     const entities = new EntityManager(dispatch, debug)
     const party = new PartyManager(dispatch, debug)
     let events = []
     let enabled = false
+
     const targets = {
         self: function(cb){
             cb(entities.self().cid)
@@ -32,6 +36,7 @@ module.exports = function BattleNotify(dispatch){
             })
         }
     }
+
     const conditions = {
         expiring: function(args){
             let timesToMatch = args.timeRemaining || 6
@@ -85,11 +90,24 @@ module.exports = function BattleNotify(dispatch){
         }
     }
 
+    dispatch.hook('S_LOGIN', 1, (event) => {
+        enabled = true
+        refreshConfig()
+    })
+    dispatch.hook('S_RETURN_TO_LOBBY', 'raw', (data) => {
+        enabled = false
+    })
+    dispatch.hook('S_PRIVATE_CHAT', 1, (event) => {
+        if(!debug) return
+        enabled = true
+        setTimeout(refreshConfig, 5)
+    })
+
     function AbnormalEvent(abnormals, target, type, message, args){
         if(typeof abnormals !== typeof []) abnormals = [abnormals]
         type = type.toLowerCase()
         target = target.toLowerCase()
-        let doTargets = targets[target]
+        let iterateTargets = targets[target]
         let condition = conditions[type](args)
         let lastMatch = 0
 
@@ -110,43 +128,36 @@ module.exports = function BattleNotify(dispatch){
             if(type.includes('missing')){
                 if(results.every(result => { return result })){
                     // for "missing" types, we need all abnormalities to be missing
-                    doNotify(entity, info)
+                    notifyAbnormal(message, entity, info)
                     lastMatch = _lastMatch
                 }
             } else if (results.includes(true)){
                 //if one abnormality matched
-                doNotify(entity, info)
+                notifyAbnormal(message, entity, info)
                 lastMatch = _lastMatch
             }
         }
-        function doNotify(entity, info){
-            let _msg = message
-            if(info){
-                _msg = _msg.replace('{duration}', Math.round((info.expires - Date.now())/1000) + 's')
-                _msg = _msg.replace('{stacks}', info.stacks)
-            }
-            if(entity && entity !== {}){
-                _msg = _msg.replace('{name}', entity.name)
-                _msg = _msg.replace('{nextEnrage}',  entity.nextEnrage + '%')
-            }
-            notify(_msg)
-        }
         this.check = function(){
-            doTargets(checkEntity)
+            iterateTargets(checkEntity)
         }
     }
-    dispatch.hook('S_LOGIN', 1, (event) => {
-        enabled = true
-        refreshConfig()
-    })
-    dispatch.hook('S_RETURN_TO_LOBBY', 'raw', (data) => {
-        enabled = false
-    })
-    dispatch.hook('S_PRIVATE_CHAT', 1, (event) => {
-        if(!debug) return
-        enabled = true
-        setTimeout(refreshConfig, 5)
-    })
+    function notifySkillReset(message, info){
+        if(info){
+            message = message.replace('{icon}', info.icon)
+        }
+        notify(message)
+    }
+    function notifyAbnormal(message, entity, info){
+        if(info){
+            message = message.replace('{duration}', Math.round((info.expires - Date.now())/1000) + 's')
+            message = message.replace('{stacks}', info.stacks)
+        }
+        if(entity && entity !== {}){
+            message = message.replace('{name}', entity.name)
+            message = message.replace('{nextEnrage}',  entity.nextEnrage + '%')
+        }
+        notify(message)
+    }
     function notify(message){
         dispatch.toClient('S_DUNGEON_EVENT_MESSAGE', 1, {
             unk1: 2,
@@ -166,6 +177,7 @@ module.exports = function BattleNotify(dispatch){
     }
     function refreshConfig(){
         events = []
+        cooldown.clearResetHooks()
         delete require.cache[require.resolve('./config/common')]
         delete require.cache[require.resolve('./config/' + entities.self().class)]
         loadEvents(require('./config/common'))
@@ -173,21 +185,38 @@ module.exports = function BattleNotify(dispatch){
     }
     function loadEvents(obj){
         obj.forEach(event => {
-            createEvent(
-                event.abnormalities,
-                event.target,
-                event.type,
-                event.message,
-                {
-                    timeRemaining: event.time_remaining,
-                    rewarnTimeout: event.rewarn_timeout,
-                    requiredStacks: event.required_stacks
-                }
-            )
+            if(event.abnormalities)
+                createAbnormalEvent(
+                    event.abnormalities,
+                    event.target,
+                    event.type,
+                    event.message,
+                    {
+                        timeRemaining: event.time_remaining,
+                        rewarnTimeout: event.rewarn_timeout,
+                        requiredStacks: event.required_stacks
+                    }
+                )
+            if(event.type && event.type.toLowerCase() === 'reset')
+                createResetEvent(
+                    event.skills,
+                    event.message,
+                    {}
+                )
         })
     }
-    function createEvent(abnormals, target, type, message, arg){
+    function createAbnormalEvent(abnormals, target, type, message, arg){
         events.push(new AbnormalEvent(abnormals, target, type, message, arg))
+    }
+    function createResetEvent(skills, message, args){
+        if(typeof skills !== typeof []) skills = [skills]
+        let groups = new Set()
+        skills.forEach(skill => {
+            groups.add(Math.floor(skill / 10000))
+        })
+        cooldown.onReset(groups, (info) => {
+            notifySkillReset(message, info)
+        })
     }
     function checkEvents(){
         if(!enabled) return

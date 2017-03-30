@@ -7,4 +7,13 @@ module.exports = [
 		message: 'Missing Stance',
 		rewarn_timeout: 10
 	}
+
+/*
+	// Blade Draw Reset
+,	{
+		type: 'Reset',
+		skills: [290100, 370100], // normal & deadly gamble version of blade draw
+		message: '{icon} Reset'
+	}
+*/
 ]
