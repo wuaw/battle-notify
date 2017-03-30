@@ -34,6 +34,8 @@ The `type` field can be any of the following (case-insensitive):
 - `Added` An abnormality was added to the target.
 - `AddedOrRefreshed` An abnormality was added, or refreshed on the target.
 - `Refreshed` An abnormality was refreshed on the target.
+  - Both `Refreshed` types have extra arguments: `required_stacks`
+  - Specifying `required_stacks` of `5` would mean that the module only notifies you once the abnormality is refreshed with stacks of `5` or higher. This field only takes an integer as an argument.
 - `Expiring` An abnormality is expiring on the target.
   - This type has extra arguments: `time_remaining`
   - Specifying a `time_remaining` of `6` would mean that when 6 seconds are left on the buff or debuff, the notification for this event is shown.
@@ -41,7 +43,7 @@ The `type` field can be any of the following (case-insensitive):
 - `Missing` All of the specified abnormalities are missing from the target.
 - `MissingDuringCombat` Similar to `Missing`, but only triggers when you are in combat.
   - Both `Missing` types have extra arguments: `rewarn_timeout`
-  - Specifying a `rewarn_timeout` of `5` would mean that the module waits 5 seconds after warning you of the event before it warns you again. This prevents spam. This field only takes a single integer as an argument.
+  - Specifying a `rewarn_timeout` of `5` would mean that the module waits 5 seconds after warning you of the event before it warns you again. This prevents spam. This field only takes an integer as an argument.
 
 #### Target
 

@@ -42,16 +42,24 @@ module.exports = function BattleNotify(dispatch){
                 if(timesToMatch.includes(remaining)) return (info.refreshed || info.added) + (remaining * 1000)
             }
         },
-        added: function() {
+        added: function(args) {
             return function(info) { return (info ? info.added : false) }
         },
-        addedorrefreshed: function(){
-            return function(info) { return (info ? (info.refreshed || info.added) : false) }
+        addedorrefreshed: function(args){
+            let requiredStacks = args.requiredStacks || 1
+            return function(info) {
+                if(info && info.stacks < requiredStacks) return false
+                return (info ? (info.refreshed || info.added) : false)
+            }
         },
-        refreshed: function(){
-            return function(info) { return (info ? info.refreshed : false) }
+        refreshed: function(args){
+            let requiredStacks = args.requiredStacks || 1
+            return function(info) {
+                if(info && info.stacks < requiredStacks) return false
+                return (info ? info.refreshed : false)
+            }
         },
-        removed: function(){
+        removed: function(args){
             return function(info) { return (info ? info.removed : false) }
         },
         missing: function(args){
@@ -172,7 +180,8 @@ module.exports = function BattleNotify(dispatch){
                 event.message,
                 {
                     timeRemaining: event.time_remaining,
-                    rewarnTimeout: event.rewarn_timeout
+                    rewarnTimeout: event.rewarn_timeout,
+                    requiredStacks: event.required_stacks
                 }
             )
         })
