@@ -30,7 +30,7 @@ This is an example of an abnormality event:
 	}
 ```
 
-#### Type
+#### type
 
 The `type` field can be any of the following (case-insensitive):
 - `'Added'` An abnormality was added to the target.
@@ -45,9 +45,9 @@ The `type` field can be any of the following (case-insensitive):
 - `'Missing'` All of the specified abnormalities are missing from the target.
 - `'MissingDuringCombat'` Similar to `Missing`, but only triggers when you are in combat.
   - Both `Missing` types have extra arguments: `rewarn_timeout` (Default: 5)
-  - Specifying a `rewarn_timeout` of `5` would mean that the module waits 5 seconds after warning you of the event before it warns you again. This prevents spam. This field only takes an integer as an argument.
+  - Specifying a `rewarn_timeout` of `5` would mean that you are notified every 5 seconds while the conditions for the event are met. This prevents spam. This field only takes an integer as an argument.
 
-#### Target
+#### target
 
 The `target` field can be any of the following (case-insensitive):
 - `'Self'` Your character.
@@ -55,7 +55,7 @@ The `target` field can be any of the following (case-insensitive):
 - `'Party'` Any party member, excluding yourself.
 - `'PartyIncludingSelf'` Any party member, including yourself.
 
-#### Abnormalities
+#### abnormalities
 
 The `abnormalities` field specifies the ID of the buff or debuff (known in the game as an `abnormality`) that you want to track.
 
@@ -65,7 +65,7 @@ You can specify multiple abnormalities in an array `[11111, 22222]` or a single 
 
 Since the game does not normally have an abnormality ID for enrage, it is hard-coded in the module as ID `8888888`. The module estimates how long the entity should stay enraged for, and when the next enrage should be, using the generally known 36-second rule. This is not accurate for all bosses, however, so be warned should you encounter some inaccuracies.
 
-#### Message
+#### message
 
 The `message` field specifies the message to be shown on the in-game notification when the event triggers. It should be a string.
 
@@ -79,9 +79,75 @@ You can use the following text in your string and the module will replace it wit
 
 Extra arguments should be supplied for some event types. You can find details about them in the `type` section of this readme.
 
+## Cooldown Events
+
+Skill cooldown events should only be used in class-specific config files (i.e. anything but `config/common.js`), to avoid conflicts skill IDs between classes.
+
+Item cooldown events may be used in any config file.
+
+This is an example of a cooldown event:
+```
+	// Fire Avalanche is coming off cooldown in 10 seconds
+,	{
+	type: 'Expiring',
+	skills: 80100,
+	message: '{icon} {duration}',
+	time_remaining: 10
+	}
+```
+
+#### type
+
+The `type` field for a cooldown event can be any of the following:
+- `'Expiring'` A cooldown is expiring in a specified amount of time.
+- `'ExpiringDuringCombat'` As above, plus you are in combat.
+- `'ExpiringDuringEnrage'` As above, plus the boss is enraged.
+	- All of the above `'Expiring'` type events have extra arguments: `time_remaining` (Default: 6)
+	- A `time_remaining` of `5` would mean that you are notified when 5 seconds are left on the cooldown of the skill or item.
+	- You can specify multiple values in an array `[5, 10]` to be notified at multiple times, 5 and 10 seconds in this case.
+- `'Ready'` The item or skill in question is off cooldown.
+- `'ReadyDuringCombat'` As above, plus you are in combat.
+- `'ReadyDuringEnrage'` As above, plus the boss is enraged.
+	- All of the above `'Ready'` type events have extra arguments: `rewarn_timeout` (Default: 5)
+	- A `rewarn_timeout` of `5` would mean that you are notified every 5 seconds while the conditions for the event are met. This prevents spam.
+
+Please note! `Ready` type events will also be triggered by skill resets. There should be no cases in which you need a `Ready` event and a `Reset` event for the same skill. Should you configure it as such, you would be notified twice when a skill reset happens.
+
+#### skills
+
+The `skills` field specifies the skill ID(s) that you want to track.
+
+Please see the section below under the header `Skill Reset Events # skills` for information about how to obtain and specify skill IDs.
+
+#### items
+
+The `items` field specifies the item ID(s) that you want to track.
+
+You can find a list of item IDs at this website, under `Database -> Items`: [TeraDatabase](http://teradatabase.net) (note: You should *not* use this site to obtain skill IDs. Only use this site for item IDs).
+
+You can specify a single item ID `98267` or multiple item IDs in an array `[98267, 98260]`.
+
+You may specify items and skills under the same event, but they must still be separated by their respective types.
+```
+	skills: 80100,
+	items: [98267, 98260]
+```
+
+When you specify multiple skills, items, or both, they will be processed individually. This means that the script will not wait for *all* of the skills/items to meet the conditions that you specify, it will check if each of them meets the condition individually and notify you as such.
+
+#### message
+
+The `message` field specifies the message to be shown on the in-game notification when the event triggers. It should be a string.
+
+You can use the following text in your string and the module will replace it with the relevant information:
+- `{duration}` Display the time remaining on the cooldown, in seconds. (e.g. `5s`)
+- `{icon}` Display the icon of the skill or item in question.
+
 ## Skill Reset Events
 
-Skill reset events should only be used in skill-specific config files (i.e. anything but `config/common.js`). This is an example of a skill reset event (from `config/warrior.js`):
+Skill reset events should only be used in class-specific config files (i.e. anything but `config/common.js`), to avoid conflicts skill IDs between classes.
+
+This is an example of a skill reset event (from `config/warrior.js`):
 ```
 	// Blade Draw Reset
 ,	{
@@ -91,11 +157,11 @@ Skill reset events should only be used in skill-specific config files (i.e. anyt
 	}
 ```
 
-#### Type
+#### type
 
 The `type` field for a skill reset event must be `'Reset'` (case-insensitive).
 
-#### Skills
+#### skills
 
 The `skills` field for a skill reset event specifies the skill IDs that you would like to track.
 
@@ -105,7 +171,7 @@ You can specify a single skill ID `290100` or multiple skill IDs in an array `[2
 
 Skills trigger an event by their respective group, rather than the raw skill ID that you supply. So, `290100` would hook group `29`. This is done so that you do not need to supply the skill ID for each level of the skill. However, in some cases a skill has a different group in certain conditions (See warrior blade draw with & without deadly gamble buff, or slayer OHS with ICB). In these cases you must provide the base skill ID and the buffed skill ID, as shown above for warrior's blade draw.
 
-#### Message
+#### message
 
 The `message` field specifies the message to be shown on the in-game notification when the event triggers. It should be a string.
 
@@ -116,5 +182,4 @@ You can use the following text in your string and the module will replace it wit
 - Custom message styling (colour, size)
 - Custom notification types (pop-up, chat)
 - Boss mechanic events (e.g. P3 Vergos debuffs)
-- Skill & item cooldown events
 - In-game commands (on, off, ...)
