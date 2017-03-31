@@ -33,27 +33,27 @@ This is an example of an abnormality event:
 #### Type
 
 The `type` field can be any of the following (case-insensitive):
-- `Added` An abnormality was added to the target.
-- `AddedOrRefreshed` An abnormality was added, or refreshed on the target.
-- `Refreshed` An abnormality was refreshed on the target.
+- `'Added'` An abnormality was added to the target.
+- `'AddedOrRefreshed'` An abnormality was added, or refreshed on the target.
+- `'Refreshed'` An abnormality was refreshed on the target.
   - Both `Refreshed` types have extra arguments: `required_stacks` (Default: 1)
   - Specifying `required_stacks` of `5` would mean that the module only notifies you once the abnormality is refreshed with stacks of `5` or higher. This field only takes an integer as an argument.
-- `Expiring` An abnormality is expiring on the target.
+- `'Expiring'` An abnormality is expiring on the target.
   - This type has extra arguments: `time_remaining` (Default: 6)
   - Specifying a `time_remaining` of `6` would mean that when 6 seconds are left on the buff or debuff, the notification for this event is shown.
   - Specifying a `time_remaining` of `[6, 12]`, in an array, works in a similar manner but for both 6 and 12 seconds. There is no limit on how many integers you can specify.
-- `Missing` All of the specified abnormalities are missing from the target.
-- `MissingDuringCombat` Similar to `Missing`, but only triggers when you are in combat.
+- `'Missing'` All of the specified abnormalities are missing from the target.
+- `'MissingDuringCombat'` Similar to `Missing`, but only triggers when you are in combat.
   - Both `Missing` types have extra arguments: `rewarn_timeout` (Default: 5)
   - Specifying a `rewarn_timeout` of `5` would mean that the module waits 5 seconds after warning you of the event before it warns you again. This prevents spam. This field only takes an integer as an argument.
 
 #### Target
 
 The `target` field can be any of the following (case-insensitive):
-- `Self` Your character.
-- `MyBoss` The boss that you are attacking.
-- `Party` Any party member, excluding yourself.
-- `PartyIncludingSelf` Any party member, including yourself.
+- `'Self'` Your character.
+- `'MyBoss'` The boss that you are attacking.
+- `'Party'` Any party member, excluding yourself.
+- `'PartyIncludingSelf'` Any party member, including yourself.
 
 #### Abnormalities
 
@@ -70,7 +70,7 @@ Since the game does not normally have an abnormality ID for enrage, it is hard-c
 The `message` field specifies the message to be shown on the in-game notification when the event triggers. It should be a string.
 
 You can use the following text in your string and the module will replace it with the relevant information:
-- `{duration}` Display the remaining duration of the abnormality. Will not work with `Missing` or `Removed` type events. (Displays in seconds, e.g. `36s`)
+- `{duration}` Display the remaining duration of the abnormality. Will not work with `'Missing'` or `'Removed'` type events. (Displays in seconds, e.g. `36s`)
 - `{stacks}` Display the number of stacks that the abnormality has on the target. (Displays an integer, e.g. `6`)
 - `{name}` The in-game name of the target that was specified.
 - `{nextEnrage}` The HP percentage that the target is expected to enrage at next. Only works with bosses. See note above in the `abnormalities` section about inaccuracies of enrage prediction. (Displays a percentage, e.g. `55%`)
@@ -93,7 +93,7 @@ Skill reset events should only be used in skill-specific config files (i.e. anyt
 
 #### Type
 
-The `type` field for a skill reset event must be `Reset` (case-insensitive).
+The `type` field for a skill reset event must be `'Reset'` (case-insensitive).
 
 #### Skills
 
