@@ -110,14 +110,19 @@ The `type` field for a cooldown event can be any of the following:
 - `'ReadyDuringEnrage'` As above, plus the boss is enraged.
 	- All of the above `'Ready'` type events have extra arguments: `rewarn_timeout` (Default: 5)
 	- A `rewarn_timeout` of `5` would mean that you are notified every 5 seconds while the conditions for the event are met. This prevents spam.
+- `'Reset'` The skill's cooldown was reset by a glyph.
 
 Please note! `Ready` type events will also be triggered by skill resets. There should be no cases in which you need a `Ready` event and a `Reset` event for the same skill. Should you configure it as such, you would be notified twice when a skill reset happens.
 
 #### skills
 
-The `skills` field specifies the skill ID(s) that you want to track.
+The `skills` field for a skill reset event specifies the skill IDs that you would like to track.
 
-Please see the [skills](#skills-1) head under `Skill Reset Events` for information about how to obtain and specify skill IDs.
+You can find a list of skills in the `skills` file for your region in the [TeraDpsMeterData](https://github.com/neowutran/TeraDpsMeterData/blob/master/skills/) repository. [Here](https://github.com/neowutran/TeraDpsMeterData/blob/master/skills/skills-NA.tsv) is a link to the list of skills for NA region. The leftmost column indicates the skill ID.
+
+You can specify a single skill ID `290100` or multiple skill IDs in an array `[290100, 370100]`.
+
+Skills trigger an event by their respective group, rather than the raw skill ID that you supply. So, `290100` would hook group `29`. This is done so that you do not need to supply the skill ID for each level of the skill. However, in some cases a skill has a different group in certain conditions (See warrior blade draw with & without deadly gamble buff, or slayer OHS with ICB). In these cases you must provide the base skill ID and the buffed skill ID, as shown above for warrior's blade draw.
 
 #### items
 
@@ -142,41 +147,6 @@ The `message` field specifies the message to be shown on the in-game notificatio
 You can use the following text in your string and the module will replace it with the relevant information:
 - `{duration}` Display the time remaining on the cooldown, in seconds. (e.g. `5s`)
 - `{icon}` Display the icon of the skill or item in question.
-
-## Skill Reset Events
-
-Skill reset events should only be used in class-specific config files (i.e. anything but `config/common.js`), to avoid conflicts skill IDs between classes.
-
-This is an example of a skill reset event (from `config/warrior.js`):
-```
-	// Blade Draw Reset
-,	{
-		type: 'Reset',
-		skills: [290100, 370100], // normal & deadly gamble version of blade draw
-		message: '{icon} Reset'
-	}
-```
-
-#### type
-
-The `type` field for a skill reset event must be `'Reset'` (case-insensitive).
-
-#### skills
-
-The `skills` field for a skill reset event specifies the skill IDs that you would like to track.
-
-You can find a list of skills in the `skills` file for your region in the [TeraDpsMeterData](https://github.com/neowutran/TeraDpsMeterData/blob/master/skills/) repository. [Here](https://github.com/neowutran/TeraDpsMeterData/blob/master/skills/skills-NA.tsv) is a link to the list of skills for NA region. The leftmost column indicates the skill ID.
-
-You can specify a single skill ID `290100` or multiple skill IDs in an array `[290100, 370100]`.
-
-Skills trigger an event by their respective group, rather than the raw skill ID that you supply. So, `290100` would hook group `29`. This is done so that you do not need to supply the skill ID for each level of the skill. However, in some cases a skill has a different group in certain conditions (See warrior blade draw with & without deadly gamble buff, or slayer OHS with ICB). In these cases you must provide the base skill ID and the buffed skill ID, as shown above for warrior's blade draw.
-
-#### message
-
-The `message` field specifies the message to be shown on the in-game notification when the event triggers. It should be a string.
-
-You can use the following text in your string and the module will replace it with the relevant information:
-- `{icon}` Display the icon for the skill in question.
 
 ## Planned Features
 - Custom message styling (colour, size)
