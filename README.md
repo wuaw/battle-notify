@@ -117,7 +117,7 @@ Please note! `Ready` type events will also be triggered by skill resets. There s
 
 The `skills` field specifies the skill ID(s) that you want to track.
 
-Please see the section below under the header `Skill Reset Events # skills` for information about how to obtain and specify skill IDs.
+Please see the section below under the header [skills](#skills-1) for information about how to obtain and specify skill IDs.
 
 #### items
 
