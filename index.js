@@ -168,7 +168,7 @@ module.exports = function BattleNotify(dispatch){
             },
             party: function* (){
                 const myCid = entities.self().cid
-                for (cid of party.members()) if(cid !== myCid){
+                for (const cid of party.members()) if(cid !== myCid){
                     yield cid
                 }
             },
