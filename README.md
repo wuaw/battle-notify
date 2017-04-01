@@ -89,10 +89,10 @@ This is an example of a cooldown event:
 ```
 	// Fire Avalanche is coming off cooldown in 10 seconds
 ,	{
-	type: 'Expiring',
-	skills: 80100,
-	message: '{icon} {duration}',
-	time_remaining: 10
+		type: 'Expiring',
+		skills: 80100,
+		message: '{icon} {duration}',
+		time_remaining: 10
 	}
 ```
 
@@ -100,9 +100,9 @@ This is an example of a skill reset event:
 ```
 // Blade Draw Reset
 ,	{
-	type: 'Reset',
-	skills: [290100, 370100], // normal & deadly gamble version of blade draw
-	message: '{icon} Reset'
+		type: 'Reset',
+		skills: [290100, 370100], // normal & deadly gamble version of blade draw
+		message: '{icon} Reset'
 	}
 ```
 
