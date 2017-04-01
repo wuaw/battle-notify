@@ -340,6 +340,7 @@ module.exports = function BattleNotify(dispatch){
         if(data instanceof Error){
             logError([
                 `[battle-notify] loadEvents: error while loading (${path})`,
+                `the config file is (probably) not formatted properly. commas are important!`,
                 data.stack
             ])
             return
