@@ -342,6 +342,7 @@ module.exports = function BattleNotify(dispatch){
                 `[battle-notify] loadEvents: error while loading (${path})`,
                 result.stack
             ])
+            return
         }
 
         for(const event of data){
@@ -355,7 +356,6 @@ module.exports = function BattleNotify(dispatch){
                 ])
                 continue
             }
-
             events.add(result)
         }
     }
