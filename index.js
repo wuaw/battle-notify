@@ -1,4 +1,4 @@
-const debug = false
+const debug = true
 if(debug){
     delete require.cache[require.resolve('./lib/abnormal')]
     delete require.cache[require.resolve('./lib/cooldown')]
@@ -340,7 +340,7 @@ module.exports = function BattleNotify(dispatch){
         if(data instanceof Error){
             logError([
                 `[battle-notify] loadEvents: error while loading (${path})`,
-                result.stack
+                data.stack
             ])
             return
         }
