@@ -74,6 +74,7 @@ You can use the following text in your string and the module will replace it wit
 - `{stacks}` Display the number of stacks that the abnormality has on the target. (Displays an integer, e.g. `6`)
 - `{name}` The in-game name of the target that was specified.
 - `{nextEnrage}` The HP percentage that the target is expected to enrage at next. Only works with bosses. See note above in the `abnormalities` section about inaccuracies of enrage prediction. (Displays a percentage, e.g. `55%`)
+- `{icon}` The icon of the abnormality in question. (Note that Enrage does not have an icon by itself, so I am using focused niveot icon instead)
 
 #### Argument fields
 

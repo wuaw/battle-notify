@@ -1,17 +1,26 @@
-const debug = true
-if(debug){
-    delete require.cache[require.resolve('./lib/abnormal')]
-    delete require.cache[require.resolve('./lib/cooldown')]
-    delete require.cache[require.resolve('./lib/entity')]
-    delete require.cache[require.resolve('./lib/party')]
-    delete require.cache[require.resolve('./lib/notify')]
+const debug = false
+const AbnormalManager = tryRequire('./lib/abnormal')
+const CooldownManager = tryRequire('./lib/cooldown')
+const EntityManager = tryRequire('./lib/entity')
+const PartyManager = tryRequire('./lib/party')
+const Notify = tryRequire('./lib/notify')
+
+for (const lib of [AbnormalManager, CooldownManager, EntityManager, PartyManager, Notify]){
+    if(!lib) return
 }
 
-const AbnormalManager = require('./lib/abnormal')
-const CooldownManager = require('./lib/cooldown')
-const EntityManager = require('./lib/entity')
-const PartyManager = require('./lib/party')
-const Notify = require('./lib/notify')
+function tryRequire(path){
+    delete require.cache[require.resolve(path)]
+    const result = tryIt(() => require(path))
+    if(result instanceof Error){
+        logError([
+            `[battle-notify] require: error loading (${path})`,
+            result.stack
+        ])
+        return false
+    }
+    return result
+}
 
 function tryIt(func) {
     try {
@@ -66,7 +75,7 @@ module.exports = function BattleNotify(dispatch){
             missing: function(args){
                 const rewarnTimeout = (args.rewarnTimeout || 5)*1000
                 return function(info, lastMatch) {
-                    if(!info || (info && info.removed)){
+                    if(!info || (!info.added && !info.refreshed)){
                         if((lastMatch + rewarnTimeout) > Date.now()) return
                         return (Date.now())
                     }
@@ -75,7 +84,7 @@ module.exports = function BattleNotify(dispatch){
             missingduringcombat: function(args){
                 const rewarnTimeout = (args.rewarnTimeout || 5)*1000
                 return function(info, lastMatch) {
-                    if(!info || (info && info.removed)){
+                    if(!info || (!info.added && !info.refreshed)){
                         if((lastMatch + rewarnTimeout) > Date.now()) return
                         if(!entities.myEntity().combat) return
                         return Date.now()
@@ -335,16 +344,8 @@ module.exports = function BattleNotify(dispatch){
     }
     function loadEvents(path){
         delete require.cache[require.resolve(path)]
-        const data = tryIt(() => require(path))
-
-        if(data instanceof Error){
-            logError([
-                `[battle-notify] loadEvents: error while loading (${path})`,
-                `the config file is (probably) not formatted properly. commas are important!`,
-                data.stack
-            ])
-            return
-        }
+        const data = tryRequire(path)
+        if(!data) return
 
         for(const event of data){
             const result = tryIt(() => loadEvent(event))
@@ -370,5 +371,14 @@ module.exports = function BattleNotify(dispatch){
     this.destructor = function(){
         clearInterval(checkTimer)
     }
-    if(debug) dispatch.toServer('C_CHAT', 1, {"channel":11,"message":"<FONT></FONT>"})
+    if(debug) {
+        dispatch.toServer('C_CHAT', 1, {"channel":11,"message":"<FONT></FONT>"})
+        /*
+        notify.testColors()
+        notify.notify('{#FFFFFF}test')
+        notify.notify('{chat} chat')
+        notify.notify('{popup} popup')
+        notify.notify('{notice} notice')
+        */
+    }
 }
