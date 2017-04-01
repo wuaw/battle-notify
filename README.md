@@ -98,7 +98,7 @@ This is an example of a cooldown event:
 
 This is an example of a skill reset event:
 ```
-// Blade Draw Reset
+	// Blade Draw Reset
 ,	{
 		type: 'Reset',
 		skills: [290100, 370100], // normal & deadly gamble version of blade draw

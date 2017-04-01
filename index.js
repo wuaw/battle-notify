@@ -15,13 +15,13 @@ const Notify = require('./lib/notify')
 
 function tryIt(func) {
     try {
-        return func();
+        return func()
     } catch (e) {
-        return e;
+        return e
     }
 }
 function logError(message) {
-    console.error(Array.isArray(message) ? message.join('\n') : message);
+    console.error(Array.isArray(message) ? message.join('\n') : message)
 }
 
 module.exports = function BattleNotify(dispatch){
@@ -319,31 +319,43 @@ module.exports = function BattleNotify(dispatch){
     function refreshConfig(){
         events.clear()
         cooldown.clearResetHooks()
-        delete require.cache[require.resolve('./config/common')]
-        delete require.cache[require.resolve('./config/' + entities.self().class)]
-        loadEvents(require('./config/common'))
-        loadEvents(require('./config/' + entities.self().class))
+        loadEvents('./config/common')
+        loadEvents('./config/' + entities.self().class)
     }
-    function loadEvents(data){
+    function loadEvent(event){
+        let type
+        if (event.abnormalities)
+            type = AbnormalEvent
+        else if (event.type && event.type.toLowerCase() === 'reset')
+            type = ResetEvent
+        else if (event.skills || event.items)
+            type = CooldownEvent
+
+        return new type(event)
+    }
+    function loadEvents(path){
+        delete require.cache[require.resolve(path)]
+        const data = tryIt(() => require(path))
+
+        if(data instanceof Error){
+            logError([
+                `[battle-notify] loadEvents: error while loading (${path})`,
+                result.stack
+            ])
+        }
+
         for(const event of data){
-            let type
+            const result = tryIt(() => loadEvent(event))
 
-            if (event.abnormalities)
-                type = AbnormalEvent
-            else if (event.type && event.type.toLowerCase() === 'reset')
-                type = ResetEvent
-            else if (event.skills || event.items)
-                type = CooldownEvent
-
-            const result = tryIt(() => new type(event))
             if(result instanceof Error){
                 logError([
-                    `[battle-notify] loadEvents: error while loading event`,
+                    `[battle-notify] loadEvents: error while loading event from (${path})`,
                     `event: ${JSON.stringify(event)}`,
                     result.stack
                 ])
                 continue
             }
+
             events.add(result)
         }
     }
