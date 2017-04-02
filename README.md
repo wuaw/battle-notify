@@ -39,12 +39,12 @@ You can specify colors via style tags.
 
 ![colors preview](/previews/colors.jpg?raw=true)
 
-Here is an image showing the default color tags, accessed like so: `{red}`
+Here is an image showing the preset color tags.
 
 You can:
 - Use preset colors. `{red}`
 - Use custom hex codes. `{#ff0000}`
-- Use multiple color tags in the same message. (e.g. `{red}this text is red {blue}this text is blue`)
+- Use multiple color tags in the same message. `{red}this text is red {blue}this text is blue`
 
 ## Abnormality Events
 
