@@ -190,7 +190,5 @@ You can use the following text in your string and the module will replace it wit
 - `{icon}` Display the icon of the skill or item in question.
 
 ## Planned Features
-- Custom message styling (colour, size)
-- Custom notification types (pop-up, chat)
 - Boss mechanic events (e.g. P3 Vergos debuffs)
 - In-game commands (on, off, ...)
