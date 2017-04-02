@@ -4,7 +4,7 @@ A [tera-proxy](https://github.com/meishuu/tera-proxy) module to show text notifi
 
 ## Preview
 
-[Click me](https://i.imgur.com/Rt6T3Hg.jpg) to view a preview of a `battle-notify` event. (Boss enraged)
+[Click me](/previews/screenshot.png?raw=true) to view a preview of a `battle-notify` event. (Boss enraged)
 
 ## Installation
 
@@ -15,6 +15,36 @@ Please make sure that your copy of [tera-proxy](https://github.com/meishuu/tera-
 ## Configuration
 
 The `config` folder contains all of the files necessary to customize the events that are shown.
+
+## Styling options
+
+The file `./config/common_styling.js` contains the default styling options that will be prepended to each event.
+
+These options can be overriden, per event, by using style tags in the `message` field of the event.
+
+This example shows the default style tags:
+```
+"{chat}{alert}{red}"
+```
+
+#### Notification Types
+
+- `{chat}` Display a message via the "Warning" chat channel.
+- `{alert}` Display a message in the center of the screen.
+- `{notice}` Display a message in the center of the screen, with a sound. (This option uses the party notice chat channel, but please note that the notice will only be visible on your client)
+
+#### Colors
+
+You can specify colors via style tags.
+
+![colors preview](/previews/colors.jpg?raw=true)
+
+Here is an image showing the default color tags, accessed like so: `{red}`
+
+You can:
+- Use preset colors. `{red}`
+- Use custom hex codes. `{#ff0000}`
+- Use multiple color tags in the same message. (e.g. `{red}this text is red {blue}this text is blue`)
 
 ## Abnormality Events
 
