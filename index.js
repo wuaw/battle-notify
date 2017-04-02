@@ -328,8 +328,16 @@ module.exports = function BattleNotify(dispatch){
     function refreshConfig(){
         events.clear()
         cooldown.clearResetHooks()
-        loadEvents('./config/common')
+
         loadEvents('./config/' + entities.self().class)
+        loadEvents('./config/common')
+
+        loadStyling('./config/common_styling.js')
+    }
+    function loadStyling(path){
+        const data = tryRequire(path)
+        if(!data) return
+        notify.setDefaults(data)
     }
     function loadEvent(event){
         let type
@@ -343,7 +351,6 @@ module.exports = function BattleNotify(dispatch){
         return new type(event)
     }
     function loadEvents(path){
-        delete require.cache[require.resolve(path)]
         const data = tryRequire(path)
         if(!data) return
 
@@ -373,12 +380,7 @@ module.exports = function BattleNotify(dispatch){
     }
     if(debug) {
         dispatch.toServer('C_CHAT', 1, {"channel":11,"message":"<FONT></FONT>"})
-        /*
-        notify.testColors()
-        notify.notify('{#FFFFFF}test')
-        notify.notify('{chat} chat')
-        notify.notify('{popup} popup')
-        notify.notify('{notice} notice')
-        */
+
+        //notify.testColors()
     }
 }
