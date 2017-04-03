@@ -298,7 +298,7 @@ module.exports = function BattleNotify(dispatch){
         const type = data.type.toLowerCase()
         const iterateTargets = generators.cooldown(data.skills, data.items)
         const event = {}
-        let args = event.args = {
+        const args = event.args = {
             timeRemaining: data.time_remaining || 6,
             rewarnTimeout: data.rewarn_timeout || 5
         }
