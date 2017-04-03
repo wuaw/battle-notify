@@ -30,8 +30,19 @@ function tryIt(func) {
     }
 }
 function logError(message) {
-    console.error(Array.isArray(message) ? message.join('\n') : message)
+    console.error(isArray(message) ? message.join('\n') : message)
 }
+
+const isDefined = x => typeof x !== 'undefined'
+const isArray = x => x instanceof Array
+
+const toArray = x => isArray(x) ? x : (isDefined(x) ? [x] : [])
+const toSet = x => new Set(toArray(x))
+
+const thisIfGreater = (x, y) => (x > y) ? x : false
+const thisIfSmaller = (x, y) => (x < y) ? x : false
+
+const skillGroup = x => Math.floor(x / 10000)
 
 module.exports = function BattleNotify(dispatch){
     let enabled = false
@@ -40,124 +51,12 @@ module.exports = function BattleNotify(dispatch){
     const entities = new EntityManager(dispatch, debug)
     const party = new PartyManager(dispatch, debug)
     const notify = new Notify(dispatch, debug)
+    const conditions = new Conditions()
     const events = new Set()
-    const conditions = {
-        abnormal: {
-            expiring: function(args){
-                let timesToMatch = args.timeRemaining || 6
-                if(typeof timesToMatch !== typeof []) timesToMatch = [timesToMatch]
-                return function(info){
-                    if(!info || !info.expires) return false
-                    const remaining = Math.round((info.expires - Date.now())/1000)
-                    if(timesToMatch.includes(remaining)) return (info.refreshed || info.added) + (remaining * 1000)
-                }
-            },
-            added: function(args) {
-                return function(info) { return (info ? info.added : false) }
-            },
-            addedorrefreshed: function(args){
-                const requiredStacks = args.requiredStacks || 1
-                return function(info) {
-                    if(info && info.stacks < requiredStacks) return false
-                    return (info ? (info.refreshed || info.added) : false)
-                }
-            },
-            refreshed: function(args){
-                const requiredStacks = args.requiredStacks || 1
-                return function(info) {
-                    if(info && info.stacks < requiredStacks) return false
-                    return (info ? info.refreshed : false)
-                }
-            },
-            removed: function(args){
-                return function(info) { return (info ? info.removed : false) }
-            },
-            missing: function(args){
-                const rewarnTimeout = (args.rewarnTimeout || 5)*1000
-                return function(info, lastMatch) {
-                    if(!info || (!info.added && !info.refreshed)){
-                        if((lastMatch + rewarnTimeout) > Date.now()) return
-                        return (Date.now())
-                    }
-                }
-            },
-            missingduringcombat: function(args){
-                const rewarnTimeout = (args.rewarnTimeout || 5)*1000
-                return function(info, lastMatch) {
-                    if(!info || (!info.added && !info.refreshed)){
-                        if((lastMatch + rewarnTimeout) > Date.now()) return
-                        if(!entities.myEntity().combat) return
-                        return Date.now()
-                    }
-                }
-            }
-        },
-        cooldown: {
-            expiring: function(args){
-                let timesToMatch = args.timeRemaining || 6
-                if(typeof timesToMatch !== typeof []) timesToMatch = [timesToMatch]
-                return function(info){
-                    if(!info || !info.expires) return false
-                    const remaining = Math.round((info.expires - Date.now())/1000)
-                    if(timesToMatch.includes(remaining)) return info.expires - remaining*1000
-                }
-            },
-            expiringduringcombat(args){
-                let timesToMatch = args.timeRemaining || 6
-                if(typeof timesToMatch !== typeof []) timesToMatch = [timesToMatch]
-                return function(info){
-                    if(!info || !info.expires) return false
-                    if(!entities.myEntity().combat) return false
-                    if(!entities.myBoss().enraged) return false
-                    const remaining = Math.round((info.expires - Date.now())/1000)
-                    if(timesToMatch.includes(remaining)) return info.expires - remaining*1000
-                }
-            },
-            expiringduringenrage(args){
-                let timesToMatch = args.timeRemaining || 6
-                if(typeof timesToMatch !== typeof []) timesToMatch = [timesToMatch]
-                return function(info){
-                    if(!info || !info.expires) return false
-                    if(!entities.myEntity().combat) return false
-                    const remaining = Math.round((info.expires - Date.now())/1000)
-                    if(timesToMatch.includes(remaining)) return info.expires - remaining*1000
-                }
-            },
-            ready: function(args){
-                const rewarnTimeout = (args.rewarnTimeout || 5)*1000
-                return function (info, lastMatch){
-                    if((lastMatch + rewarnTimeout) > Date.now()) return
-                    if(info && info.expires){
-                        if(Date.now() < info.expires) return
-                    }
-                    return Date.now()
-                }
-            },
-            readyduringcombat(args){
-                const rewarnTimeout = (args.rewarnTimeout || 5)*1000
-                return function (info, lastMatch){
-                    if((lastMatch + rewarnTimeout) > Date.now()) return
-                    if(info && info.expires){
-                        if(Date.now() < info.expires) return
-                    }
-                    if(!entities.myEntity().combat) return
-                    return Date.now()
-                }
-            },
-            readyduringenrage(args){
-                const rewarnTimeout = (args.rewarnTimeout || 5)*1000
-                return function(info, lastMatch){
-                    if((lastMatch + rewarnTimeout) > Date.now()) return
-                    if(info && info.expires){
-                        if(Date.now() < info.expires) return
-                    }
-                    if(!entities.myEntity().combat) return
-                    if(!entities.myBoss().enraged) return
-                    return Date.now()
-                }
-            }
-        },
-    }
+
+    const combat = () => entities.myEntity().combat
+    const enrage = () => entities.myBoss().enraged
+
     const generators = {
         targets: {
             self: function* (){
@@ -203,17 +102,146 @@ module.exports = function BattleNotify(dispatch){
         setTimeout(refreshConfig, 5)
     })
 
+    function Conditions(){
+        const msRemaining = uts => uts - Date.now()
+        const sRemaining = uts => Math.round(msRemaining(uts) / 1000)
+        const matchExpiring = (set, uts) => set.has(sRemaining(uts))
+
+        function AbnormalConditions(){
+            const checkAdded = ({added} = {}) => added
+            const checkRemoved = ({removed} = {}) => removed
+
+            function AddedOrRefreshed({requiredStacks} = {}){
+                this.requiredStacks = requiredStacks
+                return checkAddedOrRefreshed.bind(this)
+            }
+            function checkAddedOrRefreshed({stacks = 0, added, refreshed} = {}) {
+                if(stacks > this.requiredStacks)
+                    return refreshed || added
+            }
+
+            function Refreshed({requiredStacks} = {}){
+                this.requiredStacks = requiredStacks
+                return checkRefreshed.bind(this)
+            }
+            function checkRefreshed({stacks = 0, refreshed} = {}) {
+                if(stacks > requiredStacks)
+                    return refreshed
+            }
+
+            function Expiring({timeRemaining} = {}) {
+                this.timesToMatch = toSet(timeRemaining)
+                return checkExpiring.bind(this)
+            }
+            function checkExpiring({expires = 0, added, refreshed} = {}){
+                if(matchExpiring(this.timesToMatch, expires))
+                    return (refreshed || added) + msRemaining(expires)
+            }
+
+            function Missing({rewarnTimeout} = {}){
+                this.rewarnTimeout = rewarnTimeout * 1000
+                return checkMissing.bind(this)
+            }
+            function checkMissing({added, refreshed} = {}, lastMatch) {
+                if(added || refreshed) return
+                return thisIfGreater(Date.now(), lastMatch + this.rewarnTimeout)
+            }
+
+            function MissingDuringCombat({rewarnTimeout} = {}){
+                this.rewarnTimeout = rewarnTimeout * 1000
+                return checkMissingDuringCombat.bind(this)
+            }
+            function checkMissingDuringCombat({added, refreshed} = {}, lastMatch) {
+                if(added || refreshed || !combat()) return
+                return thisIfGreater(Date.now(), lastMatch + this.rewarnTimeout)
+            }
+
+            this.added = (x) => checkAdded
+            this.removed = (x) => checkRemoved
+            this.addedorrefreshed = () => new AddedOrRefreshed(x)
+            this.refreshed = (x) => new Refreshed(x)
+            this.expiring = (x) => new Expiring(x)
+            this.missing = (x) => new Missing(x)
+            this.missingduringcombat = (x) => new MissingDuringCombat(x)
+        }
+
+        function CooldownConditions(){
+             function Expiring({timeRemaining = 6} = {}){
+                this.timesToMatch = toSet(timeRemaining)
+                return checkExpiring.bind(this)
+            }
+            function checkExpiring({expires} = {}){
+                if(matchExpiring(timesToMatch, expires))
+                    return expires - msRemaining(expires)
+            }
+
+            function ExpiringDuringCombat({timeRemaining} = {}){
+                this.timesToMatch = toSet(timeRemaining)
+                return checkExpiringDuringCombat.bind(this)
+            }
+            function checkExpiringDuringCombat({expires = 0} = {}){
+                if(combat())
+                    return checkExpiring.call(this, ...arguments)
+            }
+
+            function ExpiringDuringEnrage({timeRemaining} = {}){
+                this.timesToMatch = toSet(timeRemaining)
+                return checkExpiringDuringEnrage.bind(this)
+            }
+            function checkExpiringDuringEnrage({expires = 0} = {}){
+                if(enrage)
+                    return checkExpiringDuringCombat.call(this, ...arguments)
+            }
+
+            function Ready({rewarnTimeout = 5} = {}){
+                this.rewarnTimeout = rewarnTimeout * 1000
+                return checkReady.bind(this)
+            }
+            function checkReady({expires = 0} = {}, lastMatch){
+                if(Date.now() > expires)
+                    return thisIfGreater(Date.now(), lastMatch + this.rewarnTimeout)
+            }
+
+            function ReadyDuringCombat({rewarnTimeout} = {}){
+                rewarnTimeout *= 1000
+                return checkReadyDuringCombat.bind(this)
+            }
+            function checkReadyDuringCombat({expires = 0} = {}, lastMatch){
+                if(combat())
+                    return checkReady.call(this, ...arguments)
+            }
+
+            function ReadyDuringEnrage({rewarnTimeout} = {}){
+                this.rewarnTimeout = rewarnTimeout * 1000
+                return checkReadyDuringEnrage.bind(this)
+            }
+            function checkReadyDuringEnrage ({expires = 0} = {}, lastMatch){
+                if(enrage())
+                    return checkReadyDuringCombat.call(this, ...arguments)
+            }
+
+            this.expiring = (x) => new Expiring(x)
+            this.expiringduringcombat = (x) => new ExpiringDuringCombat(x)
+            this.expiringduringenrage = (x) => new ExpiringDuringEnrage(x)
+            this.ready = (x) => new Ready(x)
+            this.readyduringcombat = (x) => new ReadyDuringCombat(x)
+            this.readyduringenrage = (x) => new ReadyDuringEnrage(x)
+        }
+
+        this.cooldown = new CooldownConditions()
+        this.abnormal = new AbnormalConditions()
+    }
+
     function AbnormalEvent(data){
-        if(typeof data.abnormalities !== typeof [])
-            data.abnormalities = [data.abnormalities]
+        data.abnormalities = toArray(data.abnormalities)
         const type = data.type.toLowerCase()
         const target = data.target.toLowerCase()
         const iterateTargets = generators.targets[target]
         const event = {}
         const args = event.args = {
-            timeRemaining: data.time_remaining,
-            rewarnTimeout: data.rewarn_timeout,
-            requiredStacks: data.required_stacks
+            timeRemaining: data.time_remaining || 6,
+            rewarnTimeout: data.rewarn_timeout || 5,
+            requiredStacks: data.required_stacks || 1
         }
         event.abnormalities = new Set(data.abnormalities)
         event.condition = conditions.abnormal[type](args)
@@ -265,20 +293,14 @@ module.exports = function BattleNotify(dispatch){
     }
 
     function CooldownEvent(data){
-        if(!data.skills)
-            data.skills = []
-        if(!data.items)
-            data.items = []
-        if(typeof data.skills !== typeof [])
-            data.skills = [data.skills]
-        if(typeof data.items !== typeof [])
-            data.items = [data.items]
+        data.skills = toArray(data.skills)
+        data.items = toArray(data.items)
         const type = data.type.toLowerCase()
         const iterateTargets = generators.cooldown(data.skills, data.items)
         const event = {}
-        const args = event.args = {
-            timeRemaining: data.time_remaining,
-            rewarnTimeout: data.rewarn_timeout
+        let args = event.args = {
+            timeRemaining: data.time_remaining || 6,
+            rewarnTimeout: data.rewarn_timeout || 5
         }
         event.condition = conditions.cooldown[type](args)
         event.message = data.message
@@ -311,10 +333,9 @@ module.exports = function BattleNotify(dispatch){
     }
 
     function ResetEvent(data){
-        if(typeof data.skills !== typeof []) data.skills = [data.skills]
-        let groups = new Set()
+        const groups = new Set()
 
-        for(const skill of data.skills){
+        for(const skill of toArray(data.skills)){
             groups.add(skillGroup(skill))
         }
         cooldown.onReset(groups, info => {
@@ -352,9 +373,8 @@ module.exports = function BattleNotify(dispatch){
     }
     function loadEvents(path){
         const data = tryRequire(path)
-        if(!data) return
 
-        for(const event of data){
+        for(const event of toArray(data)){
             const result = tryIt(() => loadEvent(event))
 
             if(result instanceof Error){
