@@ -129,8 +129,8 @@ module.exports = function BattleNotify(dispatch){
                     return refreshed
             }
 
-            function Expiring({timeRemaining} = {}) {
-                this.timesToMatch = toSet(timeRemaining)
+            function Expiring({timesToMatch} = {}) {
+                this.timesToMatch = timesToMatch
                 return checkExpiring.bind(this)
             }
             function checkExpiring({expires = 0, added, refreshed} = {}){
@@ -166,8 +166,8 @@ module.exports = function BattleNotify(dispatch){
         }
 
         function CooldownConditions(){
-             function Expiring({timeRemaining = 6} = {}){
-                this.timesToMatch = toSet(timeRemaining)
+             function Expiring({timesToMatch} = {}){
+                this.timesToMatch = timesToMatch
                 return checkExpiring.bind(this)
             }
             function checkExpiring({expires} = {}){
@@ -175,8 +175,8 @@ module.exports = function BattleNotify(dispatch){
                     return expires - msRemaining(expires)
             }
 
-            function ExpiringDuringCombat({timeRemaining} = {}){
-                this.timesToMatch = toSet(timeRemaining)
+            function ExpiringDuringCombat({timesToMatch} = {}){
+                this.timesToMatch = timesToMatch
                 return checkExpiringDuringCombat.bind(this)
             }
             function checkExpiringDuringCombat({expires = 0} = {}){
@@ -184,8 +184,8 @@ module.exports = function BattleNotify(dispatch){
                     return checkExpiring.call(this, ...arguments)
             }
 
-            function ExpiringDuringEnrage({timeRemaining} = {}){
-                this.timesToMatch = toSet(timeRemaining)
+            function ExpiringDuringEnrage({timesToMatch} = {}){
+                this.timesToMatch = timesToMatch
                 return checkExpiringDuringEnrage.bind(this)
             }
             function checkExpiringDuringEnrage({expires = 0} = {}){
@@ -193,7 +193,7 @@ module.exports = function BattleNotify(dispatch){
                     return checkExpiringDuringCombat.call(this, ...arguments)
             }
 
-            function Ready({rewarnTimeout = 5} = {}){
+            function Ready({rewarnTimeout} = {}){
                 this.rewarnTimeout = rewarnTimeout * 1000
                 return checkReady.bind(this)
             }
@@ -233,17 +233,16 @@ module.exports = function BattleNotify(dispatch){
     }
 
     function AbnormalEvent(data){
-        data.abnormalities = toArray(data.abnormalities)
         const type = data.type.toLowerCase()
         const target = data.target.toLowerCase()
         const iterateTargets = generators.targets[target]
         const event = {}
         const args = event.args = {
-            timeRemaining: data.time_remaining || 6,
+            timesToMatch: toSet(data.time_remaining || 6),
             rewarnTimeout: data.rewarn_timeout || 5,
             requiredStacks: data.required_stacks || 1
         }
-        event.abnormalities = new Set(data.abnormalities)
+        event.abnormalities = toSet(data.abnormalities)
         event.condition = conditions.abnormal[type](args)
         event.message = data.message
         event.lastMatches = new Map()
@@ -299,7 +298,7 @@ module.exports = function BattleNotify(dispatch){
         const iterateTargets = generators.cooldown(data.skills, data.items)
         const event = {}
         const args = event.args = {
-            timeRemaining: data.time_remaining || 6,
+            timesToMatch: toSet(data.time_remaining || 6),
             rewarnTimeout: data.rewarn_timeout || 5
         }
         event.condition = conditions.cooldown[type](args)
