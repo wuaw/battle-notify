@@ -132,7 +132,7 @@ module.exports = function BattleNotify(dispatch){
             }
             function checkExpiring({expires = 0, added, refreshed} = {}){
                 if(matchExpiring(this.timesToMatch, expires))
-                    return (refreshed || added) + msRemaining(expires)
+                    return (refreshed || added) + sRemaining(expires)
             }
 
             function Missing({rewarnTimeout} = {}){
@@ -169,7 +169,7 @@ module.exports = function BattleNotify(dispatch){
             }
             function checkExpiring({expires} = {}){
                 if(matchExpiring(timesToMatch, expires))
-                    return expires - msRemaining(expires)
+                    return expires - sRemaining(expires)
             }
 
             function ExpiringDuringCombat({timesToMatch} = {}){
