@@ -7,6 +7,7 @@ const Notify = tryRequire('./lib/notify')
 
 const isDefined = x => typeof x !== 'undefined'
 const isArray = x => x instanceof Array
+const isError = x => x instanceof Error
 const toArray = x => isArray(x) ? x : (isDefined(x) ? [x] : [])
 const toSet = x => new Set(toArray(x))
 const thisIfGreater = (x, y) => (x > y) ? x : false
@@ -36,7 +37,7 @@ function tryRequire(path){
             `[battle-notify] require: error loading (${path})`,
             result.stack
         ])
-        return false
+        return
     }
     return result
 }
@@ -53,42 +54,11 @@ module.exports = function BattleNotify(dispatch){
     const party = new PartyManager(dispatch, debug)
     const notify = new Notify(dispatch, debug)
     const conditions = new Conditions()
+    const targets = new Targets()
     const events = new Set()
 
     const combat = () => entities.myEntity().combat
     const enrage = () => entities.myBoss().enraged
-
-    const generators = {
-        targets: {
-            self: function* (){
-                yield entities.myCid()
-            },
-            myboss: function* (){
-                yield entities.myBossId()
-            },
-            party: function* (){
-                const myCid = entities.self().cid
-                for (const cid of party.members()) if(cid !== myCid){
-                    yield cid
-                }
-            },
-            partyincludingself: function* (){
-                for(const cid of party.members()){
-                    yield cid
-                }
-            }
-        },
-        cooldown: function(skills, items) {
-            return function* (){
-                for(const skill of skills){
-                    yield cooldown.skill(skill)
-                }
-                for(const item of items){
-                    yield cooldown.item(item)
-                }
-            }
-        }
-    }
 
     dispatch.hook('S_LOGIN', 1, (event) => {
         enabled = true
@@ -155,7 +125,7 @@ module.exports = function BattleNotify(dispatch){
 
             this.added = (x) => checkAdded
             this.removed = (x) => checkRemoved
-            this.addedorrefreshed = () => new AddedOrRefreshed(x)
+            this.addedorrefreshed = (x) => new AddedOrRefreshed(x)
             this.refreshed = (x) => new Refreshed(x)
             this.expiring = (x) => new Expiring(x)
             this.missing = (x) => new Missing(x)
@@ -229,10 +199,29 @@ module.exports = function BattleNotify(dispatch){
         this.abnormal = new AbnormalConditions()
     }
 
+    function Targets(){
+        function AbnormalTargets(){
+            this.self = () => [entities.myCid()]
+            this.myboss = () => [entities.myBossId()]
+            this.party = () => party.members()
+                .filter(cid => cid !== entities.myCid())
+            this.partyincludingself = () => party.members()
+        }
+        function CooldownTargets(skills, items){
+            skills = Array.from(skills)
+            items = Array.from(items)
+            return () =>
+                skills.map(id => cooldown.skill(id))
+                    .concat(items.map(id => cooldown.item(id)))
+        }
+        this.cooldown = CooldownTargets
+        this.abnormal = new AbnormalTargets
+    }
+
     function AbnormalEvent(data){
         const type = data.type.toLowerCase()
         const target = data.target.toLowerCase()
-        const iterateTargets = generators.targets[target]
+        const getTargets = targets.abnormal[target]
         const event = {}
         const args = event.args = {
             timesToMatch: toSet(data.time_remaining || 6),
@@ -246,16 +235,15 @@ module.exports = function BattleNotify(dispatch){
         event.matchAll = type.includes('missing')
 
         this.check = function(){
-            for(const entityId of iterateTargets()){
-                const result = tryIt(() => checkAbnormalEvent(entityId, event))
-                if(result instanceof Error){
-                    logError([
-                        `[battle-notify] AbnormalEvent.check: error while checking event`,
-                        `event: ${JSON.stringify(event)}`,
-                        result.stack
-                    ])
-                }
-            }
+            getTargets()
+                .map(id =>
+                    tryIt(() => checkAbnormalEvent(id, event)))
+                .filter(isError)
+                .forEach(err => logError([
+                    `[battle-notify] AbnormalEvent.check: error while checking event`,
+                    `event: ${JSON.stringify(event || {})}`,
+                    err.stack
+                ]))
         }
     }
     function checkAbnormalEvent(entityId, event){
@@ -292,7 +280,7 @@ module.exports = function BattleNotify(dispatch){
         data.skills = toArray(data.skills)
         data.items = toArray(data.items)
         const type = data.type.toLowerCase()
-        const iterateTargets = generators.cooldown(data.skills, data.items)
+        const getTargets = targets.cooldown(data.skills, data.items)
         const event = {}
         const args = event.args = {
             timesToMatch: toSet(data.time_remaining || 6),
@@ -303,16 +291,15 @@ module.exports = function BattleNotify(dispatch){
         event.lastMatches = new Map()
 
         this.check = function(){
-            for (const info of iterateTargets()){
-                const result = tryIt(() => checkCooldownEvent(info, event))
-                if(result instanceof Error){
-                    logError([
-                        `[battle-notify] CooldownEvent.check: error while checking event`,
-                        `event: ${JSON.stringify(event)}`,
-                        result.stack
-                    ])
-                }
-            }
+            getTargets()
+                .map(info =>
+                    tryIt(() => checkCooldownEvent(info, event)))
+                .filter(isError)
+                .forEach(err => logError([
+                    `[battle-notify] CooldownEvent.check: error while checking event`,
+                    `event: ${JSON.stringify(event || {})}`,
+                    err.stack
+                ]))
         }
     }
     function checkCooldownEvent(info, event){
@@ -330,16 +317,13 @@ module.exports = function BattleNotify(dispatch){
 
     function ResetEvent(data){
         const groups = new Set()
-
-        for(const skill of toArray(data.skills)){
-            groups.add(skillGroup(skill))
-        }
+        toArray(data.skills)
+            .map(skillGroup)
+            .forEach(g => groups.add(g))
         cooldown.onReset(groups, info => {
             notify.skillReset(data.message, info)
         })
-        this.check = function(){
-
-        }
+        this.check = function(){ }
     }
 
     function refreshConfig(){
@@ -386,9 +370,7 @@ module.exports = function BattleNotify(dispatch){
     }
     function checkEvents(){
         if(!enabled) return
-        for(const event of events){
-            event.check()
-        }
+        events.forEach(e => e.check())
     }
     const checkTimer = setInterval(checkEvents, 500)
     this.destructor = function(){
