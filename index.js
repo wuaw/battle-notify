@@ -5,8 +5,27 @@ const EntityManager = tryRequire('./lib/entity')
 const PartyManager = tryRequire('./lib/party')
 const Notify = tryRequire('./lib/notify')
 
+const isDefined = x => typeof x !== 'undefined'
+const isArray = x => x instanceof Array
+const toArray = x => isArray(x) ? x : (isDefined(x) ? [x] : [])
+const toSet = x => new Set(toArray(x))
+const thisIfGreater = (x, y) => (x > y) ? x : false
+const thisIfSmaller = (x, y) => (x < y) ? x : false
+const skillGroup = x => Math.floor(x / 10000)
+const msRemaining = uts => uts - Date.now()
+const sRemaining = uts => Math.round(msRemaining(uts) / 1000)
+const matchExpiring = (set, uts) => set.has(sRemaining(uts))
+
 for (const lib of [AbnormalManager, CooldownManager, EntityManager, PartyManager, Notify]){
     if(!lib) return
+}
+
+function tryIt(func) {
+    try {
+        return func()
+    } catch (e) {
+        return e
+    }
 }
 
 function tryRequire(path){
@@ -22,27 +41,9 @@ function tryRequire(path){
     return result
 }
 
-function tryIt(func) {
-    try {
-        return func()
-    } catch (e) {
-        return e
-    }
-}
 function logError(message) {
-    console.error(isArray(message) ? message.join('\n') : message)
+    console.error(Array.isArray(message) ? message.join('\n') : message)
 }
-
-const isDefined = x => typeof x !== 'undefined'
-const isArray = x => x instanceof Array
-
-const toArray = x => isArray(x) ? x : (isDefined(x) ? [x] : [])
-const toSet = x => new Set(toArray(x))
-
-const thisIfGreater = (x, y) => (x > y) ? x : false
-const thisIfSmaller = (x, y) => (x < y) ? x : false
-
-const skillGroup = x => Math.floor(x / 10000)
 
 module.exports = function BattleNotify(dispatch){
     let enabled = false
@@ -103,10 +104,6 @@ module.exports = function BattleNotify(dispatch){
     })
 
     function Conditions(){
-        const msRemaining = uts => uts - Date.now()
-        const sRemaining = uts => Math.round(msRemaining(uts) / 1000)
-        const matchExpiring = (set, uts) => set.has(sRemaining(uts))
-
         function AbnormalConditions(){
             const checkAdded = ({added} = {}) => added
             const checkRemoved = ({removed} = {}) => removed
