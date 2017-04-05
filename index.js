@@ -74,8 +74,8 @@ module.exports = function BattleNotify(dispatch){
 
     function Conditions(){
         function AbnormalConditions(){
-            const checkAdded = ({added} = {}) => added
-            const checkRemoved = ({removed} = {}) => removed
+            const checkAdded = (lastMatch, {added} = {}) => added
+            const checkRemoved = (lastMatch, {removed} = {}) => removed
 
             function AddedOrRefreshed({requiredStacks} = {}){
                 this.requiredStacks = requiredStacks
