@@ -30,16 +30,15 @@ function tryIt(func) {
 }
 
 function tryRequire(path){
-    delete require.cache[require.resolve(path)]
-    const result = tryIt(() => require(path))
-    if(result instanceof Error){
+    try {
+        delete require.cache[require.resolve(path)]
+        return require(path)
+    } catch (e) {
         logError([
             `[battle-notify] require: error loading (${path})`,
             result.stack
         ])
-        return
     }
-    return result
 }
 
 function logError(message) {
@@ -109,7 +108,7 @@ module.exports = function BattleNotify(dispatch){
                 this.rewarnTimeout = rewarnTimeout * 1000
                 return checkMissing.bind(this)
             }
-            function checkMissing({added, refreshed} = {}, lastMatch) {
+            function checkMissing(lastMatch, {added, refreshed} = {}) {
                 if(added || refreshed) return
                 return thisIfGreater(Date.now(), lastMatch + this.rewarnTimeout)
             }
@@ -118,7 +117,7 @@ module.exports = function BattleNotify(dispatch){
                 this.rewarnTimeout = rewarnTimeout * 1000
                 return checkMissingDuringCombat.bind(this)
             }
-            function checkMissingDuringCombat({added, refreshed} = {}, lastMatch) {
+            function checkMissingDuringCombat(lastMatch, {added, refreshed} = {}) {
                 if(added || refreshed || !combat()) return
                 return thisIfGreater(Date.now(), lastMatch + this.rewarnTimeout)
             }
@@ -133,7 +132,8 @@ module.exports = function BattleNotify(dispatch){
         }
 
         function CooldownConditions(){
-             function Expiring({timesToMatch} = {}){
+            
+            function Expiring({timesToMatch} = {}){
                 this.timesToMatch = timesToMatch
                 return checkExpiring.bind(this)
             }
@@ -164,7 +164,7 @@ module.exports = function BattleNotify(dispatch){
                 this.rewarnTimeout = rewarnTimeout * 1000
                 return checkReady.bind(this)
             }
-            function checkReady({expires = 0} = {}, lastMatch){
+            function checkReady(lastMatch, {expires = 0} = {}){
                 if(Date.now() > expires)
                     return thisIfGreater(Date.now(), lastMatch + this.rewarnTimeout)
             }
@@ -173,7 +173,7 @@ module.exports = function BattleNotify(dispatch){
                 rewarnTimeout *= 1000
                 return checkReadyDuringCombat.bind(this)
             }
-            function checkReadyDuringCombat({expires = 0} = {}, lastMatch){
+            function checkReadyDuringCombat(lastMatch, {expires = 0} = {}){
                 if(combat())
                     return checkReady.call(this, ...arguments)
             }
@@ -182,7 +182,7 @@ module.exports = function BattleNotify(dispatch){
                 this.rewarnTimeout = rewarnTimeout * 1000
                 return checkReadyDuringEnrage.bind(this)
             }
-            function checkReadyDuringEnrage ({expires = 0} = {}, lastMatch){
+            function checkReadyDuringEnrage (lastMatch, {expires = 0} = {}){
                 if(enrage())
                     return checkReadyDuringCombat.call(this, ...arguments)
             }
@@ -215,7 +215,7 @@ module.exports = function BattleNotify(dispatch){
                     .concat(items.map(id => cooldown.item(id)))
         }
         this.cooldown = CooldownTargets
-        this.abnormal = new AbnormalTargets
+        this.abnormal = new AbnormalTargets()
     }
 
     function AbnormalEvent(data){
@@ -236,8 +236,7 @@ module.exports = function BattleNotify(dispatch){
 
         this.check = function(){
             getTargets()
-                .map(id =>
-                    tryIt(() => checkAbnormalEvent(id, event)))
+                .map(id => tryIt(() => checkAbnormalEvent(id, event)))
                 .filter(isError)
                 .forEach(err => logError([
                     `[battle-notify] AbnormalEvent.check: error while checking event`,
@@ -262,7 +261,7 @@ module.exports = function BattleNotify(dispatch){
         for(const abnormal of event.abnormalities){
             const lastMatch = event.lastMatches.get(entityId)
             const abnormalInfo = abMan.get(entityId, abnormal)
-            const match = event.condition(abnormalInfo, lastMatch)
+            const match = event.condition(lastMatch, abnormalInfo)
 
             if(match && match !== lastMatch){
                 currentMatch = match
@@ -308,7 +307,7 @@ module.exports = function BattleNotify(dispatch){
             event.lastMatches.set(id, 0)
 
         const lastMatch = event.lastMatches.get(id)
-        const match = event.condition(info, lastMatch)
+        const match = event.condition(lastMatch, info)
         if(match && match !== lastMatch){
             notify.cooldown(event.message, info)
             event.lastMatches.set(id, match)
@@ -316,14 +315,10 @@ module.exports = function BattleNotify(dispatch){
     }
 
     function ResetEvent(data){
-        const groups = new Set()
-        toArray(data.skills)
-            .map(skillGroup)
-            .forEach(g => groups.add(g))
-        cooldown.onReset(groups, info => {
+        cooldown.onReset(toArray(data.skills), info => {
             notify.skillReset(data.message, info)
         })
-        this.check = function(){ }
+        this.check = function(){}
     }
 
     function refreshConfig(){
@@ -354,19 +349,20 @@ module.exports = function BattleNotify(dispatch){
     function loadEvents(path){
         const data = tryRequire(path)
 
-        for(const event of toArray(data)){
-            const result = tryIt(() => loadEvent(event))
+        toArray(data)
+            .forEach(event => {
+                const result = tryIt(() => loadEvent(event))
 
-            if(result instanceof Error){
-                logError([
-                    `[battle-notify] loadEvents: error while loading event from (${path})`,
-                    `event: ${JSON.stringify(event)}`,
-                    result.stack
-                ])
-                continue
-            }
-            events.add(result)
-        }
+                if(isError(result)){
+                    logError([
+                        `[battle-notify] loadEvents error while loading event from ${path}`,
+                        `event: ${JSON.stringify(event)}`,
+                        result.stack
+                    ])
+                    return
+                }
+                events.add(result)
+            })
     }
     function checkEvents(){
         if(!enabled) return
