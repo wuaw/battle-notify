@@ -138,7 +138,7 @@ module.exports = function BattleNotify(dispatch){
                 return checkExpiring.bind(this)
             }
             function checkExpiring(lastMatch, {expires} = {}){
-                if(matchExpiring(timesToMatch, expires))
+                if(matchExpiring(this.timesToMatch, expires))
                     return expires - sRemaining(expires)
             }
 
