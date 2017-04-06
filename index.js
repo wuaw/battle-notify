@@ -82,8 +82,10 @@ module.exports = function BattleNotify(dispatch){
                 return checkAddedOrRefreshed.bind(this)
             }
             function checkAddedOrRefreshed(lastMatch, {stacks = 0, added, refreshed} = {}) {
+                if(stacks !== this.lastStacks) this.lastStacks = stacks
+                else return
                 if(stacks > this.requiredStacks)
-                    return added + stacks
+                    return refreshed || added
             }
 
             function Refreshed({requiredStacks} = {}){
@@ -91,8 +93,10 @@ module.exports = function BattleNotify(dispatch){
                 return checkRefreshed.bind(this)
             }
             function checkRefreshed(lastMatch, {stacks = 0, refreshed, added} = {}) {
+                if(stacks !== this.lastStacks) this.lastStacks = stacks
+                else return
                 if(stacks > this.requiredStacks)
-                    return added + stacks
+                    return refreshed || added
             }
 
             function Expiring({timesToMatch} = {}) {
