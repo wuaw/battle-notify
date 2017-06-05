@@ -170,7 +170,7 @@ module.exports = function BattleNotify(dispatch){
             }
 
             function ReadyDuringCombat({rewarnTimeout} = {}){
-                rewarnTimeout *= 1000
+                this.rewarnTimeout = rewarnTimeout * 1000
                 return checkReadyDuringCombat.bind(this)
             }
             function checkReadyDuringCombat(lastMatch, {expires = 0} = {}){
